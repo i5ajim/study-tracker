@@ -1,0 +1,2729 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Tracker V1 — তারিখ অনুযায়ী ট্র্যাকার</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #1a1238;
+    --bg-2: #241a4d;
+    --panel: #2a1f56;
+    --panel-2: #34276b;
+    --pink: #ff6fa8;
+    --teal: #3fe0d0;
+    --gold: #ffcd4e;
+    --violet: #b18aff;
+    --coral: #ff8a5c;
+    --sky: #5ac8fa;
+    --green: #6fe3a0;
+    --text: #f6f2ff;
+    --muted: #a89bd6;
+    --line: rgba(255,255,255,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(255,111,168,0.25) 0%, transparent 45%),
+      radial-gradient(circle at 90% 0%, rgba(63,224,208,0.20) 0%, transparent 45%),
+      radial-gradient(circle at 50% 100%, rgba(177,138,255,0.18) 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk','Noto Sans Bengali',sans-serif;
+    min-height:100vh;
+    padding: 26px 16px 80px; /* added bottom padding for nav */
+  }
+  .wrap{max-width:640px; margin:0 auto; padding-bottom: 20px;}
+
+  /* Header & Profile Dropdown */
+  header{ margin-bottom: 20px; display:flex; justify-content:space-between; align-items:flex-start; position:relative; }
+  h1{ font-family:'Fraunces','Noto Sans Bengali',serif; font-size:32px; font-weight:700; margin:0; letter-spacing:-0.01em;
+      background: linear-gradient(90deg, var(--pink), var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1.2; }
+  h1 span{ font-size:0.45em; color:var(--gold); -webkit-text-fill-color: var(--gold); vertical-align:middle; margin-left:4px; font-family:'Space Grotesk',sans-serif; }
+  .author-sub{ font-family:'Space Grotesk',sans-serif; font-size:13px; color:var(--muted); margin-top:2px; }
+
+  .profile-menu-container{ position:relative; display:inline-block; flex-shrink:0; }
+  .profile-btn{
+    width:42px; height:42px; border-radius:50%; background:var(--panel-2);
+    border:1px solid var(--teal); color:var(--teal); display:flex; align-items:center;
+    justify-content:center; font-size:18px; cursor:pointer; transition:all .2s;
+  }
+  .profile-btn:hover{ background:var(--teal); color:var(--bg); }
+
+  .profile-dropdown{
+    display:none; position:absolute; right:0; top:50px; background:var(--panel);
+    border:1px solid var(--line); border-radius:14px; width:220px; box-shadow:0 10px 25px rgba(0,0,0,0.5);
+    z-index:60; overflow:hidden; padding:6px;
+  }
+  .profile-dropdown.show{ display:block; }
+  .dropdown-header{ padding:12px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); word-break:break-all; }
+  .dropdown-header strong{ color:var(--text); font-size:15px; display:block; margin-bottom:2px; font-family:'Noto Sans Bengali',sans-serif; }
+  .dropdown-item{
+    padding:10px 12px; font-size:13px; color:var(--text); cursor:pointer; border-radius:8px;
+    font-family:'Noto Sans Bengali',sans-serif; display:flex; align-items:center; gap:8px; margin-top:4px;
+  }
+  .dropdown-item:hover{ background:var(--panel-2); color:var(--pink); }
+  .dropdown-item.danger{ color:var(--coral); }
+  .dropdown-item.danger:hover{ background:rgba(255,138,92,0.15); }
+
+  /* Countdown */
+  .countdown{
+    background: linear-gradient(135deg, rgba(255,111,168,0.18), rgba(63,224,208,0.14));
+    border:1px solid var(--line); border-radius:16px; padding:16px 14px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; overflow:hidden;
+  }
+  .cd-info{ flex:1; min-width:0; }
+  .cd-label{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); }
+  .cd-date-input{
+    margin-top:6px; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:4px 6px; font-size:11px; font-family:'Space Grotesk',sans-serif;
+    outline:none; color-scheme: dark; cursor:pointer; max-width:100%;
+  }
+  .cd-date-input:focus{ border-color: var(--pink); }
+  .cd-title{ font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; color:var(--text); margin-top:2px; font-weight:600; word-break:break-word; }
+  .cd-nums{ display:flex; gap:8px; flex-shrink:0; }
+  .cd-item{ text-align:center; min-width:36px; }
+  .cd-num{ font-family:'Fraunces',serif; font-size:22px; font-weight:700; color:var(--gold); line-height:1; }
+  .cd-unit{ font-family:'Noto Sans Bengali',sans-serif; font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* Date switcher */
+  .date-switcher{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+  }
+  .date-nav-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    width:34px; height:34px; border-radius:9px; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .date-nav-btn:hover{ border-color: var(--pink); }
+  .date-display{ flex:1; text-align:center; }
+  .date-main{ font-family:'Fraunces',serif; font-size:17px; }
+  .date-sub{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-top:1px; }
+  .mini-date-nav{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin:2px 0 14px;
+  }
+  .mini-date-btn{
+    width:26px; height:26px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .mini-date-btn:hover{ border-color:var(--pink); }
+  .mini-date-label{
+    font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; color:var(--muted);
+    min-width:70px; text-align:center;
+  }
+  .mini-date-today{
+    background:none; border:1px solid var(--teal); color:var(--teal);
+    border-radius:8px; padding:4px 9px; font-size:10.5px; cursor:pointer;
+    font-family:'Noto Sans Bengali',sans-serif;
+  }
+  .date-input-hidden{ position:absolute; opacity:0; width:0; height:0; }
+  .today-btn{
+    background:none; border:1px solid var(--teal); color:var(--teal);
+    border-radius:8px; padding:6px 10px; font-size:11px; cursor:pointer;
+    font-family:'Noto Sans Bengali',sans-serif; flex-shrink:0;
+  }
+  
+  .streak-badge{
+    display:flex; align-items:center; gap:4px; background: linear-gradient(135deg, rgba(255,138,92,0.25), rgba(255,205,78,0.2));
+    border:1px solid var(--line); border-radius:999px; padding:7px 14px;
+    font-size:12px; font-weight:700; color:var(--coral);
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .streak-wrap{ display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:16px; }
+
+  /* Weekly trend chart */
+  .trend-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:16px; margin-bottom:16px;
+  }
+  .trend-bars{ display:flex; align-items:flex-end; gap:8px; height:80px; margin-top:12px; }
+  .trend-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .trend-bar-track{ width:100%; max-width:28px; flex:1; display:flex; align-items:flex-end; }
+  .trend-bar{ width:100%; border-radius:6px 6px 3px 3px; background: linear-gradient(180deg, var(--teal), var(--sky)); min-height:3px; transition: height .5s ease; cursor:pointer; }
+  .trend-bar.today-bar{ background: linear-gradient(180deg, var(--pink), var(--coral)); }
+  .trend-bar.empty-bar{ background: var(--panel-2); }
+  .trend-label{ font-size:10px; color:var(--muted); margin-top:6px; font-family:'Noto Sans Bengali',sans-serif; }
+  .trend-label.active{ color:var(--gold); font-weight:700; }
+  .trend-val { font-size:9px; color:var(--text); margin-bottom:4px; font-family:'Space Grotesk',sans-serif; }
+
+  /* Ring + summary */
+  .summary{
+    display:flex; align-items:center; gap:20px;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:18px; margin-bottom:16px;
+  }
+  .ring-wrap{ position:relative; width:88px; height:88px; flex-shrink:0; }
+  .ring-wrap svg{ transform: rotate(-90deg); }
+  .ring-bg{ fill:none; stroke:var(--bg-2); stroke-width:9; }
+  .ring-fill{ fill:none; stroke: var(--gold); stroke-width:9; stroke-linecap:round; transition: stroke-dashoffset .6s ease; }
+  .ring-label{ position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--gold); }
+  .summary-text{ flex:1; }
+  .summary-main{ font-family:'Noto Sans Bengali',sans-serif; font-size:14px; color:var(--text); }
+  .summary-sub{ font-family:'Noto Sans Bengali',sans-serif; font-size:12px; color:var(--muted); margin-top:4px; }
+
+  .subject-bars{ margin-bottom: 16px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px;}
+  .sbar-row{ margin-bottom: 12px; }
+  .sbar-row:last-child { margin-bottom: 0; }
+  .sbar-top{ display:flex; justify-content:space-between; font-family:'Noto Sans Bengali',sans-serif; font-size:13px; margin-bottom:4px; }
+  .sbar-name{ font-weight:600; }
+  .sbar-pct{ color: var(--muted); }
+  .sbar-bg{ height:8px; background:var(--bg-2); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
+  .sbar-fill{ height:100%; border-radius:999px; transition: width .5s ease; }
+
+  .add-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:22px; }
+  .add-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  select, input[type=text]{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit; outline:none;
+  }
+  select:focus, input:focus{ border-color: var(--pink); }
+  input[type=text]{ flex:1; min-width:140px; }
+  .add-hint{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-top:8px; }
+  .add-btn{
+    width:100%; margin-top:10px; padding:12px; border-radius:10px; border:none;
+    background: linear-gradient(90deg, var(--teal), var(--green)); color:#0b2a20; font-weight:700; font-size:14px;
+    cursor:pointer; font-family:'Noto Sans Bengali',sans-serif;
+  }
+  .add-btn:active{ transform: scale(0.99); }
+
+  .section-label{
+    font-family:'Noto Sans Bengali',sans-serif; font-size:12px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.05em; margin: 18px 4px 8px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .filter-select{ background:none; border:none; color:var(--muted); font-size:11px; font-family:'Noto Sans Bengali',sans-serif; text-transform:none; }
+  .task-list-controls{ display:flex; align-items:center; gap:8px; }
+
+  .task{ display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; border-left:3px solid var(--violet); }
+  .task-body{ flex:1; min-width:0; }
+  .task-subject{ font-size:11px; font-weight:700; font-family:'Noto Sans Bengali',sans-serif; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .task-name{ font-size:15px; font-family:'Noto Sans Bengali',sans-serif; margin-top:1px; word-break:break-word;}
+  .del-btn{ background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px 6px; flex-shrink:0; }
+  .del-btn:hover{ color:var(--coral); }
+  .edit-btn{ background:none; border:none; font-size:14px; cursor:pointer; padding:4px 6px; flex-shrink:0; opacity:0.75; }
+  .edit-btn:hover{ opacity:1; }
+  .empty{ text-align:center; color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; padding: 30px 10px; font-size:14px; }
+
+  .history{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-top:16px; }
+  .history-row{ display:flex; align-items:center; justify-content:space-between; padding:6px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .history-row:last-child{ border-bottom:none; }
+  .history-row:hover .history-date{ color: var(--pink); }
+  .history-date{ font-family:'Noto Sans Bengali',sans-serif; font-size:12px; color:var(--text); }
+  .history-pct{ font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; color:var(--muted); }
+  .history-empty{ text-align:center; color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; font-size:12px; padding:8px; }
+  .history-more{
+    width:100%; text-align:center; background:none; border:none; color:var(--violet);
+    font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; font-weight:700;
+    padding:8px 2px 2px; cursor:pointer;
+  }
+
+  .panel-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .panel-title{ font-family:'Noto Sans Bengali',sans-serif; font-weight:700; font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+
+  /* Monthly calendar */
+  .monthly-section{ margin-top:8px; }
+  .month-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .month-arrow{ background:var(--panel); border:1px solid var(--line); color:var(--text); width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer; }
+  .month-label{ font-family:'Noto Sans Bengali',sans-serif; font-weight:700; font-size:14px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:10px; }
+  .cal-weekday-row{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:6px; }
+  .cal-weekday-row span{ text-align:center; font-family:'Noto Sans Bengali',sans-serif; font-size:9.5px; color:var(--muted); font-weight:600; }
+  .cal-cell{ aspect-ratio:1; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-direction:column; font-size:10px; font-weight:700; color:var(--text); background:var(--bg-2); border:1px solid var(--line); position:relative; overflow:hidden; }
+  .cal-cell.empty{ background:none; border:none; }
+  .cal-cell.today{ box-shadow:inset 0 0 0 2px var(--pink); }
+  .cal-cell.day-studied{ animation: calPulseStudied var(--pulse-dur, 2.4s) ease-in-out infinite; }
+  .cal-cell.day-empty{ animation: calPulseEmpty 3.4s ease-in-out infinite; }
+  .cal-bar{ position:absolute; left:3px; right:3px; bottom:3px; height:3px; border-radius:2px; opacity:0.9; z-index:0; transform-origin:left; transition:width 0.25s ease; }
+  .cal-num{ position:relative; z-index:1; }
+  .cal-hours{ position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:7.5px; color:rgba(255,255,255,0.85); font-family:'Space Grotesk',sans-serif; z-index:1; }
+  .cal-legend{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .cal-legend-item{ display:flex; align-items:center; gap:4px; font-family:'Noto Sans Bengali',sans-serif; font-size:10px; color:var(--muted); }
+  .cal-legend-dot{ width:8px; height:8px; border-radius:50%; }
+  
+  /* Graph Elements */
+  .graph-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+  .range-toggle{ display:flex; gap:4px; background:var(--panel-2); border-radius:8px; padding:2px; }
+  .rt-btn{ border:none; background:transparent; color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; font-size:10px; padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
+  .rt-btn.active{ background: linear-gradient(90deg, var(--pink), var(--violet)); color:#fff; }
+  .mini-bars.monthly, .trend-bars.monthly{ overflow-x:auto; justify-content:flex-start; gap:5px; padding-bottom:6px; scroll-snap-type:x proximity; }
+  .mini-bars.monthly .mini-col, .trend-bars.monthly .trend-col{ min-width:26px; flex:0 0 auto; scroll-snap-align:start; }
+  .mini-bars, .trend-bars{ touch-action:pan-y; cursor:grab; -webkit-overflow-scrolling:touch; }
+  .mini-bars.dragging, .trend-bars.dragging{ cursor:grabbing; scroll-snap-type:none; }
+  
+  .mini-graph{ margin-top:14px; }
+  .mini-graph-label{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .mini-bars{ display:flex; align-items:flex-end; gap:8px; height:74px; }
+  .mini-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .mini-bar-track{ width:100%; max-width:26px; flex:1; display:flex; align-items:flex-end; }
+  .mini-bar{ width:100%; border-radius:6px 6px 3px 3px; min-height:3px; transition:height .5s ease; }
+  .mini-bar.sleep-bar{ background: linear-gradient(180deg, var(--violet), var(--pink)); }
+  .mini-bar.study-bar{ background: linear-gradient(180deg, var(--gold), var(--coral)); }
+  .mini-bar.empty-bar{ background: var(--bg-2); }
+  .mini-label{ font-size:10px; color:var(--muted); margin-top:6px; font-family:'Noto Sans Bengali',sans-serif; }
+  .mini-val{ font-size:9px; color:var(--text); margin-top:1px; font-family:'Space Grotesk',sans-serif; }
+
+  /* Time Tracker & Sleep */
+  .time-input-row{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px; }
+  .time-field{ flex:1; min-width:110px; }
+  .time-field label{ display:block; font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .save-mini-btn{ padding:9px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:700; font-size:12.5px; font-family:'Noto Sans Bengali',sans-serif; background: linear-gradient(90deg, var(--teal), var(--green)); color:#0b2a20; white-space:nowrap; }
+  .hour-result{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-top:2px; font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; color:var(--muted); }
+  .hour-result .val{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; color:var(--gold); }
+  .hour-result-empty{ font-size:9.5px; color:var(--muted); opacity:0.65; font-family:'Noto Sans Bengali',sans-serif; margin:2px 2px 10px; }
+  .sleep-cycle-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+  .cycle-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:7px 10px; font-family:'Space Grotesk',sans-serif; font-size:12.5px; }
+  .cycle-row .cycle-time{ color:var(--text); }
+  .cycle-row .cycle-hours{ color:var(--violet); font-weight:700; margin-left:8px; }
+  .cycle-row .cycle-del{ background:none; border:none; color:var(--coral); font-size:14px; cursor:pointer; padding:2px 6px; flex-shrink:0; }
+  .cycle-empty{ font-size:11px; color:var(--muted); opacity:0.7; font-family:'Noto Sans Bengali',sans-serif; padding:2px; }
+
+  /* Export Row */
+  .export-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .export-row:last-child{ margin-bottom:0; }
+  .export-btn{ flex:1; min-width:120px; padding:11px 10px; border-radius:10px; cursor:pointer; text-align:center; font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; font-weight:700; border:1px solid var(--teal); color:var(--teal); background:rgba(63,224,208,0.10); }
+  .export-btn.pdf{ border-color:var(--coral); color:var(--coral); background:rgba(255,138,92,0.10); }
+  .export-btn.small{ flex:0 1 auto; min-width:0; padding:7px 14px; font-size:11px; }
+  .period-select{ background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:9px 10px; font-size:12.5px; font-family:'Noto Sans Bengali',sans-serif; outline:none; flex:1; min-width:110px; }
+  .backup-hint{ font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; color:var(--muted); margin-bottom:8px; line-height:1.5; }
+  .backup-hint.warn{ color:var(--coral); min-height:14px; }
+
+  /* Feature 1: Live Study Timer & Pomodoro */
+  .timer-mode-tabs{ display:flex; gap:6px; background:var(--bg-2); padding:4px; border-radius:12px; margin-bottom:14px; border:1px solid var(--line); }
+  .timer-mode-btn{ flex:1; border:none; background:transparent; color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; font-weight:700; padding:8px 6px; border-radius:9px; cursor:pointer; transition:all .2s; }
+  .timer-mode-btn.active{ background:linear-gradient(90deg, var(--pink), var(--violet)); color:#fff; box-shadow:0 4px 12px rgba(255,111,168,0.25); }
+  .pomo-sub-row{ display:none; justify-content:center; gap:8px; margin-bottom:10px; }
+  .pomo-sub-row.show{ display:flex; }
+  .pomo-chip{ border:1px solid var(--line); background:var(--panel-2); color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; font-size:11px; font-weight:600; padding:5px 12px; border-radius:999px; cursor:pointer; transition:all .2s; }
+  .pomo-chip.active{ border-color:var(--gold); color:var(--gold); background:rgba(255,205,78,0.12); }
+  .timer-display-box{ text-align:center; background:radial-gradient(circle at 50% 0%, rgba(63,224,208,0.12), transparent 70%), var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:18px 12px; margin-bottom:12px; position:relative; overflow:hidden; }
+  .timer-digits{ font-family:'Fraunces','Space Grotesk',serif; font-size:42px; font-weight:700; letter-spacing:0.03em; color:var(--gold); line-height:1.1; }
+  .timer-digits.running{ color:var(--teal); text-shadow:0 0 18px rgba(63,224,208,0.35); }
+  .timer-sub-status{ font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; color:var(--muted); margin-top:6px; }
+  .timer-controls{ display:flex; gap:8px; flex-wrap:wrap; }
+  .timer-btn{ flex:1; min-width:95px; padding:11px 12px; border-radius:11px; border:none; cursor:pointer; font-family:'Noto Sans Bengali',sans-serif; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; transition:transform .12s, opacity .2s; }
+  .timer-btn:active{ transform:scale(0.98); }
+  .timer-btn.start{ background:linear-gradient(90deg, var(--teal), var(--green)); color:#062319; }
+  .timer-btn.pause{ background:linear-gradient(90deg, var(--gold), var(--coral)); color:#2a1205; }
+  .timer-btn.reset{ background:var(--panel-2); color:var(--text); border:1px solid var(--line); flex:0 0 auto; min-width:80px; }
+  .timer-btn.save{ width:100%; flex:1 1 100%; margin-top:4px; background:linear-gradient(90deg, var(--violet), var(--pink)); color:#fff; }
+  .timer-toast{ font-family:'Noto Sans Bengali',sans-serif; font-size:12px; color:var(--green); background:rgba(111,227,160,0.12); border:1px solid rgba(111,227,160,0.35); border-radius:10px; padding:8px 12px; margin-top:10px; text-align:center; display:none; animation:fadeIn .25s ease; }
+  .timer-toast.show{ display:block; }
+
+  /* Feature 2: Study Category Tags */
+  .tag-Row-label{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin:10px 0 6px; display:flex; align-items:center; justify-content:space-between; }
+  .tag-pills-wrap{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px; }
+  .tag-pill{ border:1px solid var(--line); background:var(--panel-2); color:var(--muted); font-family:'Noto Sans Bengali','Space Grotesk',sans-serif; font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:999px; cursor:pointer; transition:all .18s ease; display:inline-flex; align-items:center; gap:4px; user-select:none; }
+  .tag-pill:hover{ border-color:var(--pink); color:var(--text); }
+  .tag-pill.active{ color:#fff; border-color:var(--tag-color, var(--pink)); background:var(--tag-bg, rgba(255,111,168,0.22)); box-shadow:0 0 12px var(--tag-glow, rgba(255,111,168,0.35)); }
+  .task-tag-badge{ display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; border:1px solid currentColor; line-height:1.3; }
+
+  /* Feature 4: Daily Study Goal Progress Bar */
+  .goal-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .goal-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .goal-title{ font-family:'Noto Sans Bengali',sans-serif; font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .goal-edit-btn{ border:1px solid var(--violet); background:rgba(177,138,255,0.12); color:var(--violet); border-radius:999px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali',sans-serif; transition:all .2s; }
+  .goal-edit-btn:hover{ background:var(--violet); color:var(--bg); }
+  .goal-bar-item{ margin-bottom:12px; }
+  .goal-bar-item:last-of-type{ margin-bottom:0; }
+  .goal-bar-top{ display:flex; justify-content:space-between; align-items:baseline; font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; margin-bottom:5px; }
+  .goal-bar-label{ color:var(--text); font-weight:600; display:flex; align-items:center; gap:6px; }
+  .goal-bar-num{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; font-size:12px; color:var(--muted); font-weight:700; }
+  .goal-track{ height:10px; background:var(--bg-2); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
+  .goal-fill{ height:100%; border-radius:999px; transition:width .5s ease; }
+  .goal-fill.topics{ background:linear-gradient(90deg, var(--pink), var(--gold)); }
+  .goal-fill.hours{ background:linear-gradient(90deg, var(--teal), var(--green)); }
+  .goal-celebrate{ margin-top:12px; padding:9px 12px; border-radius:12px; background:linear-gradient(90deg, rgba(111,227,160,0.16), rgba(255,205,78,0.16)); border:1px solid rgba(111,227,160,0.4); color:var(--green); font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; font-weight:700; text-align:center; display:none; animation:fadeIn .3s ease; }
+  .goal-celebrate.show{ display:block; }
+
+  /* Feature 3: Spaced Repetition / Automatic Revision Reminder */
+  .rev-toggle-line{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding:8px 11px; border-radius:10px; background:var(--bg-2); border:1px dashed var(--line); cursor:pointer; user-select:none; transition:all .2s; }
+  .rev-toggle-line.active{ border-color:var(--gold); background:rgba(255,205,78,0.10); }
+  .rev-toggle-text{ font-family:'Noto Sans Bengali',sans-serif; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .rev-toggle-line.active .rev-toggle-text{ color:var(--gold); font-weight:600; }
+  .rev-switch-dot{ width:18px; height:18px; border-radius:5px; border:1.5px solid var(--muted); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--bg); font-weight:700; flex-shrink:0; }
+  .rev-toggle-line.active .rev-switch-dot{ background:var(--gold); border-color:var(--gold); }
+
+  .rev-pin-btn{ background:var(--bg-2); border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:4px 9px; font-size:10.5px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali',sans-serif; flex-shrink:0; transition:all .18s; }
+  .rev-pin-btn.active{ border-color:var(--gold); color:var(--gold); background:rgba(255,205,78,0.14); }
+  .rev-card{ background:linear-gradient(145deg, rgba(255,205,78,0.10), rgba(177,138,255,0.10)), var(--panel); border:1px solid rgba(255,205,78,0.30); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .rev-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .rev-count-badge{ background:var(--gold); color:#1a1238; font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; }
+  .rev-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg-2); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+  .rev-item:last-child{ margin-bottom:0; }
+  .rev-item-info{ flex:1; min-width:0; }
+  .rev-item-top{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; font-weight:700; font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; }
+  .rev-stage-pill{ background:rgba(255,205,78,0.18); color:var(--gold); border:1px solid rgba(255,205,78,0.45); border-radius:999px; padding:1px 7px; font-size:9.5px; font-weight:700; }
+  .rev-item-name{ font-family:'Noto Sans Bengali',sans-serif; font-size:14px; color:var(--text); margin-top:3px; word-break:break-word; }
+  .rev-item-meta{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-top:2px; }
+  .rev-done-btn{ background:linear-gradient(90deg, var(--teal), var(--green)); color:#062319; border:none; border-radius:10px; padding:7px 11px; font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap; }
+  .rev-done-btn:active{ transform:scale(0.97); }
+  .rev-upcoming-title{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin:10px 0 6px; font-weight:600; }
+  .rev-upcoming-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; color:var(--muted); padding:6px 10px; background:var(--bg-2); border-radius:9px; margin-bottom:5px; border:1px solid var(--line); }
+  .rev-upcoming-row:last-child{ margin-bottom:0; }
+
+  /* Feature 6: Subject Mastery Leaderboard & Focus Analytics */
+  .lb-summary-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:linear-gradient(135deg, rgba(255,205,78,0.14), rgba(63,224,208,0.12));
+    border:1px solid rgba(255,205,78,0.32); border-radius:14px; padding:12px 14px; margin-bottom:14px;
+  }
+  .lb-banner-left{ min-width:0; flex:1; }
+  .lb-banner-tag{ font-family:'Noto Sans Bengali',sans-serif; font-size:10.5px; color:var(--gold); font-weight:700; }
+  .lb-banner-main{ font-family:'Noto Sans Bengali','Space Grotesk',sans-serif; font-size:14.5px; font-weight:700; color:var(--text); margin-top:2px; word-break:break-word; }
+  .lb-banner-sub{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-top:2px; }
+  .lb-trophy-icon{ font-size:28px; flex-shrink:0; filter:drop-shadow(0 2px 8px rgba(255,205,78,0.35)); }
+
+  .lb-list{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+  .lb-row{
+    background:var(--bg-2); border:1px solid var(--line); border-radius:13px; padding:11px 12px;
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .lb-row.top-1{ border-color:rgba(255,205,78,0.45); background:linear-gradient(135deg, rgba(255,205,78,0.10), rgba(42,31,86,0.4)); }
+  .lb-row.top-2{ border-color:rgba(63,224,208,0.35); }
+  .lb-row.top-3{ border-color:rgba(255,138,92,0.35); }
+  .lb-row-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .lb-rank-left{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .lb-rank-badge{
+    min-width:28px; height:24px; padding:0 6px; border-radius:8px; background:var(--panel-2);
+    border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; font-size:11.5px; font-weight:700; color:var(--text); flex-shrink:0;
+  }
+  .lb-subj-name{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; font-size:13.5px; font-weight:700; truncate:ellipsis; }
+  .lb-count-right{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; font-size:12px; font-weight:700; color:var(--text); flex-shrink:0; }
+  .lb-count-right span{ color:var(--muted); font-weight:500; font-size:11px; margin-left:4px; }
+  .lb-bar-bg{ height:7px; background:var(--panel); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
+  .lb-bar-fill{ height:100%; border-radius:999px; transition:width .5s ease; }
+  .lb-meta-row{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-top:7px; }
+  .lb-tags-mini{ display:flex; flex-wrap:wrap; gap:4px; }
+  .lb-tag-chip{
+    font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; font-size:9.5px; font-weight:600;
+    padding:2px 7px; border-radius:999px; background:var(--panel); color:var(--muted); border:1px solid var(--line);
+  }
+  .lb-last-seen{ font-family:'Noto Sans Bengali',sans-serif; font-size:10px; color:var(--muted); }
+
+  .neglected-box{
+    margin-top:14px; background:linear-gradient(135deg, rgba(255,138,92,0.12), rgba(255,111,168,0.10));
+    border:1px solid rgba(255,138,92,0.35); border-radius:14px; padding:12px 13px;
+  }
+  .neglected-title{
+    font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; font-weight:700; color:var(--coral);
+    display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:6px;
+  }
+  .neglected-sub{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); margin-bottom:9px; line-height:1.45; }
+  .neglected-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .neglected-chip{
+    border:1px solid rgba(255,138,92,0.45); background:var(--bg-2); color:var(--text);
+    border-radius:10px; padding:6px 10px; font-family:'Space Grotesk','Noto Sans Bengali',sans-serif;
+    font-size:11.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition:all .18s ease;
+  }
+  .neglected-chip:hover{ border-color:var(--pink); transform:translateY(-1px); background:var(--panel-2); }
+  .neglected-chip .n-days{ font-family:'Noto Sans Bengali',sans-serif; font-size:10px; color:var(--coral); font-weight:700; }
+  .neglected-chip .n-plus{ color:var(--teal); font-weight:700; font-size:12px; }
+  
+  /* Theme Settings */
+  .theme-grid{ display:flex; flex-direction:column; gap:10px; }
+  .theme-option{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line); background:var(--panel-2); }
+  .theme-option.active{ border-color:var(--gold); }
+  .theme-swatch{ display:flex; border-radius:8px; overflow:hidden; flex-shrink:0; width:70px; height:34px; border:1px solid rgba(255,255,255,0.15); }
+  .theme-swatch span{ flex:1; height:100%; }
+  .theme-name{ font-family:'Noto Sans Bengali',sans-serif; font-size:13px; font-weight:600; }
+
+  /* Modals */
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(10,7,22,0.78); z-index:150; align-items:flex-start; justify-content:center; overflow-y:auto; padding:24px 14px; }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{ background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:18px; width:100%; max-width:420px; margin-top:10px; }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .modal-title{ font-size:16px; font-weight:800; font-family:'Noto Sans Bengali',sans-serif; }
+  .modal-close{ cursor:pointer; color:var(--muted); font-size:16px; padding:2px 8px; }
+  .snap-btn{ border-radius:999px; padding:9px 16px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Noto Sans Bengali',sans-serif; border:1px solid var(--teal); color:var(--teal); background:rgba(63,224,208,0.12); }
+  .img-preview-wrap{ border-radius:14px; overflow:hidden; border:1px solid var(--line); background:var(--bg-2); margin-bottom:12px; }
+  .img-preview-wrap img{ width:100%; display:block; }
+  .img-preview-actions{ display:flex; justify-content:center; margin-bottom:8px; }
+  .img-preview-hint{ font-family:'Noto Sans Bengali',sans-serif; font-size:11px; color:var(--muted); text-align:center; }
+  .backup-actions{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  
+  /* Weekly summary card */
+  .summary-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .summary-stat{ background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .summary-stat .s-label{ font-family:'Noto Sans Bengali',sans-serif; font-size:10.5px; color:var(--muted); margin-bottom:4px; }
+  .summary-stat .s-val{ font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:700; color:var(--text); }
+  .summary-day-row{ display:flex; align-items:center; justify-content:space-between; background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:9px 12px; margin-bottom:8px; font-family:'Noto Sans Bengali',sans-serif; font-size:12.5px; }
+  .summary-day-row:last-child{ margin-bottom:0; }
+  .summary-day-row .tag{ font-size:15px; }
+  .summary-day-row .val{ font-family:'Space Grotesk',sans-serif; font-weight:700; }
+  .summary-empty{ font-size:11.5px; color:var(--muted); opacity:0.7; font-family:'Noto Sans Bengali',sans-serif; text-align:center; padding:8px; }
+
+  /* Combined multi-series line graph */
+  .combined-toggle-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .combined-chip{ display:flex; align-items:center; gap:5px; padding:5px 11px; border-radius:20px; border:1px solid var(--line); font-family:'Noto Sans Bengali',sans-serif; font-size:11px; cursor:pointer; color:var(--muted); background:var(--bg-2); transition:opacity 0.15s; }
+  .combined-chip:not(.active){ opacity:0.55; }
+  .combined-chip .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+  /* Day Popup */
+  .day-popup-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:200; padding:20px; }
+  .day-popup{ background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px; width:100%; max-width:320px; box-shadow:0 12px 40px rgba(0,0,0,0.5); }
+  .day-popup-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .day-popup-title{ font-family:'Noto Sans Bengali',sans-serif; font-weight:700; font-size:15px; color:var(--text); }
+  .day-popup-close{ background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; line-height:1; padding:2px 4px; }
+  .day-popup-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-family:'Space Grotesk',sans-serif; font-size:13px; }
+  .day-popup-row:last-of-type{ border-bottom:none; }
+  .day-popup-row .label{ color:var(--muted); font-family:'Noto Sans Bengali',sans-serif; font-size:12px; display:flex; align-items:center; gap:6px; }
+  .day-popup-row .val{ font-weight:700; color:var(--text); }
+  .day-popup-row .label .dot{ width:7px; height:7px; border-radius:50%; display:inline-block; }
+  .day-popup-goto{ margin-top:14px; width:100%; padding:10px; border-radius:12px; border:none; background:linear-gradient(90deg, var(--teal), var(--green)); color:#08251b; font-weight:700; font-family:'Noto Sans Bengali',sans-serif; font-size:13px; cursor:pointer; }
+  
+  .credit-footer{
+    text-align:center; margin-top:28px; padding:16px 10px; font-family:'Noto Sans Bengali',sans-serif;
+    font-size:12px; color:var(--muted); line-height:1.8;
+  }
+  .credit-footer strong{ color:var(--text); }
+  .credit-handle{ color:var(--violet); }
+  .credit-footer a{ color:var(--teal); text-decoration:none; }
+  .credit-footer a:hover{ text-decoration:underline; }
+
+  /* Tab System */
+  .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+  .tab-pane.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Bottom Navigation Bar */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--panel); border-top: 1px solid var(--line);
+    display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    color: var(--muted); font-size: 10px; cursor: pointer; text-decoration: none;
+    font-family: 'Noto Sans Bengali', sans-serif; font-weight: 600;
+    width: 60px;
+  }
+  .nav-item.active { color: var(--pink); }
+  .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+  
+</style>
+</head>
+<body onclick="closeDropdownOutside(event)">
+
+<div class="wrap">
+  <div class="day-popup-overlay" id="dayPopupOverlay" onclick="closeDayPopup(event)">
+    <div class="day-popup" onclick="event.stopPropagation()">
+      <div class="day-popup-head">
+        <div class="day-popup-title" id="dayPopupTitle"></div>
+        <button class="day-popup-close" onclick="closeDayPopup()">✕</button>
+      </div>
+      <div id="dayPopupBody"></div>
+      <button class="day-popup-goto" id="dayPopupGoto">এই দিনে যাও</button>
+    </div>
+  </div>
+
+  <!-- TAB 1: HOME -->
+  <div id="tab-home" class="tab-pane active">
+    <header>
+      <div>
+        <h1>Study Tracker<span>V1</span></h1>
+        <div class="author-sub">by Sajim</div>
+      </div>
+      <div class="profile-menu-container">
+        <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown(event)">👤</button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <strong id="userNameDisplay">স্টুডেন্ট</strong>
+            <span id="profileEmailLabel">—</span>
+          </div>
+          <div class="dropdown-item" onclick="updateProfileName()">✏️ নাম পরিবর্তন</div>
+          <div class="dropdown-item" onclick="openPasswordResetModal()">🔑 পাসওয়ার্ড রিসেট</div>
+          <div class="dropdown-item" id="syncDropdownItem" onclick="manualSync()">🔄 সিঙ্ক করো</div>
+          <div class="dropdown-item danger" onclick="logoutUser()">🚪 লগআউট</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="countdown">
+      <div class="cd-info">
+        <div class="cd-label">Target</div>
+        <div class="cd-title" id="cdTitle">তারিখ পর্যন্ত বাকি</div>
+        <input type="date" id="countdownPicker" class="cd-date-input">
+      </div>
+      <div class="cd-nums" id="cdNums">
+        <div class="cd-item"><div class="cd-num" id="cdDays">--</div><div class="cd-unit">দিন</div></div>
+        <div class="cd-item"><div class="cd-num" id="cdHours">--</div><div class="cd-unit">ঘণ্টা</div></div>
+        <div class="cd-item"><div class="cd-num" id="cdMins">--</div><div class="cd-unit">মিনিট</div></div>
+      </div>
+    </div>
+
+    <div class="streak-wrap">
+       <div class="streak-badge" id="streakBadge">🔥 0 দিন স্ট্রিক</div>
+    </div>
+
+    <div class="summary">
+      <div class="ring-wrap">
+        <svg width="88" height="88" viewBox="0 0 88 88">
+          <circle class="ring-bg" cx="44" cy="44" r="37"></circle>
+          <circle class="ring-fill" id="ringFill" cx="44" cy="44" r="37" stroke-dasharray="232.5" stroke-dashoffset="232.5"></circle>
+        </svg>
+        <div class="ring-label" id="ringLabel">0</div>
+      </div>
+      <div class="summary-text">
+        <div class="summary-main" id="summaryMain">আজকে এখনো কিছু পড়া হয়নি</div>
+        <div class="summary-sub" id="summarySub">স্টাডি লগে গিয়ে পড়া যোগ করো</div>
+      </div>
+    </div>
+
+    <!-- Feature 4: Daily Study Goal Progress Bar -->
+    <div class="goal-card">
+      <div class="goal-head">
+        <div class="goal-title">🎯 ডেইলি স্টাডি টার্গেট</div>
+        <button class="goal-edit-btn" onclick="openGoalModal()">⚙️ টার্গেট সেট করো</button>
+      </div>
+      <div class="goal-bar-item">
+        <div class="goal-bar-top">
+          <span class="goal-bar-label">📘 টপিক টার্গেট</span>
+          <span class="goal-bar-num" id="goalTopicText">0 / 5 টপিক (0%)</span>
+        </div>
+        <div class="goal-track"><div class="goal-fill topics" id="goalTopicBar" style="width:0%"></div></div>
+      </div>
+      <div class="goal-bar-item">
+        <div class="goal-bar-top">
+          <span class="goal-bar-label">⏱️ স্টাডি আওয়ার টার্গেট</span>
+          <span class="goal-bar-num" id="goalHourText">0মি / 6ঘ (0%)</span>
+        </div>
+        <div class="goal-track"><div class="goal-fill hours" id="goalHourBar" style="width:0%"></div></div>
+      </div>
+      <div class="goal-celebrate" id="goalCelebrate">🎉 অসাধারণ! আজকের ডেইলি স্টাডি টার্গেট পূরণ হয়েছে!</div>
+    </div>
+
+    <!-- Feature 3: Spaced Repetition Reminder Card on Home -->
+    <div class="rev-card" id="homeRevisionCard">
+      <div class="rev-head">
+        <div class="goal-title">🔄 আজকের রিভিশন রিমাইন্ডার</div>
+        <span class="rev-count-badge" id="homeRevCountBadge">0</span>
+      </div>
+      <div id="homeRevisionList"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">📊 সাপ্তাহিক সামারি</div>
+      <div class="summary-grid" id="summaryStatsGrid"></div>
+      <div id="summaryDaysBox"></div>
+    </div>
+
+    <!-- Feature 6 Compact Widget on Home: Subject Focus & Neglected Alert -->
+    <div class="panel-card" id="homeFocusCard">
+      <div class="graph-head" style="margin-bottom:10px;">
+        <div class="panel-title" style="margin:0;">🏆 সাবজেক্ট ফোকাস ও অ্যালার্ট</div>
+        <button class="goal-edit-btn" onclick="switchTab('calendar'); setTimeout(()=>{ const el=document.getElementById('masteryLeaderboardCard'); if(el) el.scrollIntoView({behavior:'smooth'}); }, 80);">পূর্ণ র‍্যাঙ্কিং →</button>
+      </div>
+      <div id="homeMasterySummary"></div>
+    </div>
+
+    <div class="trend-panel">
+      <div class="graph-head">
+        <div class="section-label" style="margin:0;">পড়ার ট্রেন্ড (টপিক সংখ্যা)</div>
+        <div class="range-toggle" id="trendRangeToggle">
+          <button class="rt-btn active" onclick="setGraphRange('trend','week')">সাপ্তাহিক</button>
+          <button class="rt-btn" onclick="setGraphRange('trend','month')">মাসিক</button>
+        </div>
+      </div>
+      <div class="trend-bars" id="trendBars"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: STUDY LOG -->
+  <div id="tab-log" class="tab-pane">
+    <div class="date-switcher">
+      <div class="date-nav-btn" id="prevDay">‹</div>
+      <div class="date-display" onclick="document.getElementById('datePicker').showPicker && document.getElementById('datePicker').showPicker()">
+        <div class="date-main" id="dateMain">আজ</div>
+        <div class="date-sub" id="dateSub"></div>
+        <input type="date" id="datePicker" class="date-input-hidden">
+      </div>
+      <div class="date-nav-btn" id="nextDay">›</div>
+      <button class="today-btn" id="todayBtn">আজ</button>
+    </div>
+
+    <div class="add-panel">
+      <div class="add-row">
+        <select id="subjectSelect">
+          <option>Bangla 1st</option>
+          <option>Bangla 2nd</option>
+          <option>English 1st</option>
+          <option>English 2nd</option>
+          <option>ICT</option>
+          <option>Higher Math 1st</option>
+          <option>Higher Math 2nd</option>
+          <option>Physics 1st</option>
+          <option>Physics 2nd</option>
+          <option>Chemistry 1st</option>
+          <option>Chemistry 2nd</option>
+          <option>Zoology</option>
+          <option>Botany</option>
+          <option>Practical</option>
+          <option>Other's</option>
+        </select>
+        <input type="text" id="taskInput" placeholder="যেমনঃ Chemistry 1st C1 theory শেষ করা">
+      </div>
+      <div class="tag-Row-label">
+        <span>🏷️ ক্যাটাগরি ট্যাগ (ঐচ্ছিক)</span>
+        <span id="selectedTagClear" style="color:var(--pink); cursor:pointer; display:none;" onclick="selectAddTag(null)">✕ ট্যাগ সরাও</span>
+      </div>
+      <div class="tag-pills-wrap" id="addTagPills"></div>
+      <div class="rev-toggle-line" id="addRevToggle" onclick="toggleAddRevisionFlag()">
+        <span class="rev-toggle-text">📌 ৩, ৭ ও ১৪ দিন পর অটোমেটিক রিভিশন রিমাইন্ডার মনে করিয়ে দাও</span>
+        <span class="rev-switch-dot" id="addRevDot"></span>
+      </div>
+      <div class="add-hint" id="addHint"></div>
+      <button class="add-btn" id="addBtn">+ পড়া (টপিক) যোগ করো</button>
+    </div>
+
+    <!-- Compact Due Revisions inside Study Log tab -->
+    <div class="rev-card" id="logRevisionCard" style="display:none;">
+      <div class="rev-head">
+        <div class="goal-title">📌 আজ রিভিশন দেওয়ার কথা</div>
+        <span class="rev-count-badge" id="logRevCountBadge">0</span>
+      </div>
+      <div id="logRevisionList"></div>
+    </div>
+
+    <div id="subjectBars"></div>
+
+    <div class="section-label">
+      <span>আজকের পড়া (টপিক লিস্ট)</span>
+      <div class="task-list-controls">
+        <select class="filter-select" id="tagFilterSelect" style="margin-right:4px;">
+          <option value="all">সব ট্যাগ</option>
+          <option value="Theory">📖 Theory</option>
+          <option value="Math">🧮 Math</option>
+          <option value="MCQ">❓ MCQ</option>
+          <option value="Revision">🔁 Revision</option>
+          <option value="Question Solve">📝 Question Solve</option>
+        </select>
+        <select class="filter-select" id="filterSelect">
+          <option value="all">সব Subject</option>
+          <option value="Bangla 1st">Bangla 1st</option>
+          <option value="Bangla 2nd">Bangla 2nd</option>
+          <option value="English 1st">English 1st</option>
+          <option value="English 2nd">English 2nd</option>
+          <option value="ICT">ICT</option>
+          <option value="Higher Math 1st">Higher Math 1st</option>
+          <option value="Higher Math 2nd">Higher Math 2nd</option>
+          <option value="Physics 1st">Physics 1st</option>
+          <option value="Physics 2nd">Physics 2nd</option>
+          <option value="Chemistry 1st">Chemistry 1st</option>
+          <option value="Chemistry 2nd">Chemistry 2nd</option>
+          <option value="Zoology">Zoology</option>
+          <option value="Botany">Botany</option>
+          <option value="Practical">Practical</option>
+          <option value="Other's">Other's</option>
+        </select>
+      </div>
+    </div>
+    <div id="taskList"></div>
+
+    <div class="history">
+      <div class="section-label" style="margin:0 2px 8px;">আগের দিনের হিস্ট্রি</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: SLEEP & HOURS -->
+  <div id="tab-sleep" class="tab-pane">
+    <div class="panel-card">
+      <div class="panel-title">⏱️ লাইভ স্টাডি টাইমার</div>
+      <div class="mini-date-nav" style="margin-bottom:10px;">
+        <button class="mini-date-btn" onclick="shiftSelectedDate(-1)">‹</button>
+        <span class="mini-date-label" id="timerDateLabel"></span>
+        <button class="mini-date-btn" onclick="shiftSelectedDate(1)">›</button>
+        <button class="mini-date-today" onclick="goToTodaySelected()">আজ</button>
+      </div>
+      <div class="timer-mode-tabs">
+        <button class="timer-mode-btn active" id="modeStopwatchBtn" onclick="setTimerMode('stopwatch')">⏱️ স্টপওয়াচ</button>
+        <button class="timer-mode-btn" id="modePomodoroBtn" onclick="setTimerMode('pomodoro')">🍅 পমোডোরো (২৫ মি.)</button>
+      </div>
+      <div class="pomo-sub-row" id="pomoSubRow">
+        <button class="pomo-chip active" id="pomoFocusChip" onclick="setPomodoroPhase('focus')">🎯 ফোকাস (২৫:০০)</button>
+        <button class="pomo-chip" id="pomoBreakChip" onclick="setPomodoroPhase('break')">☕ ছোট ব্রেক (০৫:০০)</button>
+      </div>
+      <div class="timer-display-box">
+        <div class="timer-digits" id="timerDigits">00:00:00</div>
+        <div class="timer-sub-status" id="timerSubStatus">পড়তে বসার সময় শুরু করো চাপো</div>
+      </div>
+      <div class="timer-controls">
+        <button class="timer-btn start" id="timerStartPauseBtn" onclick="toggleTimerStartPause()">▶️ শুরু করো</button>
+        <button class="timer-btn reset" onclick="resetStudyTimer()">🔄 রিসেট</button>
+        <button class="timer-btn save" onclick="saveTimerToStudyHours()">💾 স্টাডি আওয়ারে যোগ করো</button>
+      </div>
+      <div class="timer-toast" id="timerToast"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">😴 ঘুম ট্র্যাকার</div>
+      <div class="mini-date-nav">
+        <button class="mini-date-btn" onclick="shiftSelectedDate(-1)">‹</button>
+        <span class="mini-date-label" id="sleepDateLabel"></span>
+        <button class="mini-date-btn" onclick="shiftSelectedDate(1)">›</button>
+        <button class="mini-date-today" onclick="goToTodaySelected()">আজ</button>
+      </div>
+      <div class="time-input-row">
+        <div class="time-field">
+          <label>ঘুমানোর সময়</label>
+          <input type="time" id="sleepStartInput">
+        </div>
+        <div class="time-field">
+          <label>ওঠার সময়</label>
+          <input type="time" id="sleepEndInput">
+        </div>
+        <button class="save-mini-btn" onclick="addSleepCycle()">+ যোগ করো</button>
+      </div>
+      <div class="sleep-cycle-list" id="sleepCycleList"></div>
+      <div class="hour-result" id="sleepResult"></div>
+      <div class="mini-graph">
+        <div class="graph-head">
+          <div class="mini-graph-label" style="margin:0;">ঘুমের গ্রাফ</div>
+          <div class="range-toggle" id="sleepRangeToggle">
+            <button class="rt-btn active" onclick="setGraphRange('sleep','week')">সাপ্তাহিক</button>
+            <button class="rt-btn" onclick="setGraphRange('sleep','month')">মাসিক</button>
+          </div>
+        </div>
+        <div class="mini-bars" id="sleepGraphBars"></div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">📚 স্টাডি আওয়ার ট্র্যাকার</div>
+      <div class="mini-date-nav">
+        <button class="mini-date-btn" onclick="shiftSelectedDate(-1)">‹</button>
+        <span class="mini-date-label" id="studyDateLabel"></span>
+        <button class="mini-date-btn" onclick="shiftSelectedDate(1)">›</button>
+        <button class="mini-date-today" onclick="goToTodaySelected()">আজ</button>
+      </div>
+      <div class="time-input-row">
+        <div class="time-field">
+          <label>ঘণ্টা</label>
+          <input type="number" id="studyHourPart" min="0" max="24" step="1" placeholder="ঘণ্টা" onchange="saveStudyEntry(true)">
+        </div>
+        <div class="time-field">
+          <label>মিনিট</label>
+          <input type="number" id="studyMinutePart" min="0" max="59" step="1" placeholder="মিনিট" onchange="saveStudyEntry(true)">
+        </div>
+        <button class="save-mini-btn" onclick="saveStudyEntry()">সেভ করো</button>
+      </div>
+      <div class="hour-result" id="studyResult"></div>
+      <div class="mini-graph">
+        <div class="graph-head">
+          <div class="mini-graph-label" style="margin:0;">স্টাডি আওয়ারের গ্রাফ</div>
+          <div class="range-toggle" id="studyRangeToggle">
+            <button class="rt-btn active" onclick="setGraphRange('study','week')">সাপ্তাহিক</button>
+            <button class="rt-btn" onclick="setGraphRange('study','month')">মাসিক</button>
+          </div>
+        </div>
+        <div class="mini-bars" id="studyGraphBars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: CALENDAR -->
+  <div id="tab-calendar" class="tab-pane">
+    <div class="monthly-section">
+      <div class="month-nav">
+        <button class="month-arrow" onclick="shiftCalendarMonth(-1)">‹</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="month-arrow" onclick="shiftCalendarMonth(1)">›</button>
+      </div>
+      <div class="section-label" style="margin:0 2px 8px;">মাসের কোন কোন দিন ভালো পড়ছি</div>
+      <div class="cal-weekday-row" id="calWeekdayRow"></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend" id="calLegend"></div>
+    </div>
+
+    <div class="panel-card" style="margin-top: 20px;">
+      <div class="panel-title">📈 সব ডেটা এক গ্রাফে</div>
+      <div class="combined-toggle-row" id="combinedToggleRow"></div>
+      <div class="graph-head">
+        <div class="mini-graph-label" style="margin:0;">লাইন চার্ট</div>
+        <div class="range-toggle" id="combinedRangeToggle">
+          <button class="rt-btn active" onclick="setCombinedRange('week')">সাপ্তাহিক</button>
+          <button class="rt-btn" onclick="setCombinedRange('month')">মাসিক</button>
+        </div>
+      </div>
+      <div id="combinedChartWrap"></div>
+      <div id="combinedReadout" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- Feature 6 Full Card: Subject Mastery Leaderboard -->
+    <div class="panel-card" id="masteryLeaderboardCard">
+      <div class="graph-head" style="margin-bottom:12px;">
+        <div class="panel-title" style="margin:0;">🏆 সাবজেক্ট মাস্টারি র‍্যাঙ্কিং</div>
+        <div class="range-toggle" id="leaderboardRangeToggle">
+          <button class="rt-btn" onclick="setLeaderboardRange('week')">এই সপ্তাহ</button>
+          <button class="rt-btn active" onclick="setLeaderboardRange('month')">এই মাস</button>
+          <button class="rt-btn" onclick="setLeaderboardRange('all')">সব সময়</button>
+        </div>
+      </div>
+      <div id="leaderboardTopBanner"></div>
+      <div class="lb-list" id="leaderboardList"></div>
+      <div id="leaderboardNeglectedWrap"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: TOOLS -->
+  <div id="tab-tools" class="tab-pane">
+    <div class="panel-card">
+      <div class="panel-title">🎨 থিম বেছে নাও</div>
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">🖼️ Task List Image</div>
+      <div class="export-row">
+        <button class="export-btn small" onclick="downloadTaskImage()">📸 Task List Image ডাউনলোড করো</button>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">📤 Export PDF</div>
+      <div class="export-row">
+        <select class="period-select" id="exportDataType">
+          <option value="tasks">শুধু টাস্ক লিস্ট</option>
+          <option value="sleep">শুধু ঘুমের ডেটা</option>
+          <option value="study">শুধু স্টাডি ডেটা</option>
+          <option value="all" selected>সব ডেটা (All)</option>
+        </select>
+        <select class="period-select" id="exportPeriod">
+          <option value="week">এই সপ্তাহ</option>
+          <option value="month">এই মাস</option>
+          <option value="all" selected>সব সময়</option>
+        </select>
+      </div>
+      <div class="export-row">
+        <button class="export-btn pdf small" onclick="exportSelectedData()">⬇️ PDF ডাউনলোড করো</button>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-title">💾 সম্পূর্ণ ব্যাকআপ / রিস্টোর</div>
+      <div class="backup-hint">তোমার সব ডেটা (টাস্ক, ঘুম, স্টাডি, থিম — সবকিছু) একটা ফাইলে সেভ করো, প্রয়োজনে পরে সেটা থেকে ফিরিয়ে আনো। ডেটা হারানো থেকে বাঁচার সবচেয়ে নিরাপদ উপায়।</div>
+      <div class="export-row">
+        <button class="export-btn small" onclick="downloadFullBackup()">⬇️ ব্যাকআপ ডাউনলোড করো (.json)</button>
+        <button class="export-btn small" onclick="document.getElementById('backupImportInput').click()">📂 ব্যাকআপ ইমপোর্ট করো</button>
+      </div>
+      <input type="file" id="backupImportInput" accept="application/json,.json" style="display:none" onchange="handleBackupImport(event)">
+      <div class="backup-hint warn" id="backupImportMsg" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="credit-footer">
+      তৈরি করেছে <strong>Sajim</strong> · <span class="credit-handle">@i5ajim</span><br>
+      <a href="https://instagram.com/i5ajim" target="_blank">Instagram</a> ·
+      <a href="https://facebook.com/i5ajim" target="_blank">Facebook</a> ·
+      <span>WhatsApp: i5ajim</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="switchTab('home')">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>হোম</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('log')">
+    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+    <span>স্টাডি লগ</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('sleep')">
+    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+    <span>সময় ও ঘুম</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('calendar')">
+    <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+    <span>ক্যালেন্ডার</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('tools')">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    <span>টুলস</span>
+  </div>
+</nav>
+
+<!-- Modals -->
+<div class="modal-overlay" id="editTaskOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">✏️ টাস্ক এডিট করো</div>
+      <div class="modal-close" onclick="closeEditTaskModal()">✕</div>
+    </div>
+    <div class="add-row" style="margin-bottom:10px;">
+      <input type="text" id="editTaskName" placeholder="টাস্কের নাম">
+    </div>
+    <div class="tag-Row-label" style="margin-top:4px;">
+      <span>🏷️ ক্যাটাগরি ট্যাগ</span>
+      <span style="color:var(--pink); cursor:pointer; font-size:11px;" onclick="selectEditTag(null)">✕ ট্যাগ সরাও</span>
+    </div>
+    <div class="tag-pills-wrap" id="editTagPills" style="margin-bottom:14px;"></div>
+    <div class="backup-actions">
+      <button class="snap-btn" onclick="saveEditedTask()">সেভ করো</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="passwordResetOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">🔑 পাসওয়ার্ড রিসেট</div>
+      <div class="modal-close" onclick="closePasswordResetModal()">✕</div>
+    </div>
+    <div class="backup-hint">তোমার অ্যাকাউন্ট ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হবে।</div>
+    <input type="email" id="resetEmailInput" placeholder="তোমার ইমেইল লিখো" style="width:100%; margin-bottom:10px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--text); outline:none;">
+    <div class="backup-hint warn" id="resetMsg" style="margin-bottom:10px;"></div>
+    <div class="backup-actions">
+      <button class="snap-btn" onclick="sendPasswordReset()">রিসেট লিংক পাঠাও</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="imgPreviewOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">📸 তোমার টাস্ক ছবি</div>
+      <div class="modal-close" onclick="closeImagePreview()">✕</div>
+    </div>
+    <div class="img-preview-wrap">
+      <img id="imgPreviewImg" src="" alt="task snapshot">
+    </div>
+    <div class="img-preview-actions">
+      <button class="snap-btn" onclick="triggerImageDownload()">⬇️ ডাউনলোড করো</button>
+    </div>
+    <div class="img-preview-hint">ডাউনলোড বাটনে কাজ না হলে ছবির উপর চেপে ধরে (long press) "Save Image" করো।</div>
+  </div>
+</div>
+
+<!-- Feature 4 Modal: Daily Goal Settings -->
+<div class="modal-overlay" id="goalModalOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">🎯 ডেইলি টার্গেট সেট করো</div>
+      <div class="modal-close" onclick="closeGoalModal()">✕</div>
+    </div>
+    <div class="backup-hint">প্রতিদিন কয়টি টপিক এবং কত ঘণ্টা পড়তে চাও তার টার্গেট ঠিক করো। রিং কাউন্টার ও প্রগ্রেস বার সে অনুযায়ী ভরাট হবে।</div>
+    <div class="time-input-row" style="margin-bottom:14px;">
+      <div class="time-field">
+        <label>দৈনিক টপিক টার্গেট (টি)</label>
+        <input type="number" id="goalTopicsInput" min="1" max="50" step="1" value="5">
+      </div>
+      <div class="time-field">
+        <label>দৈনিক স্টাডি আওয়ার (ঘণ্টা)</label>
+        <input type="number" id="goalHoursInput" min="0.5" max="24" step="0.5" value="6">
+      </div>
+    </div>
+    <div class="backup-actions">
+      <button class="add-btn" style="margin-top:0;" onclick="saveDailyGoalSettings()">টার্গেট সেভ করো</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = { tasks: [], sleep: {}, studyHours: {}, theme: 'default', dailyGoal: { topics: 5, hours: 6 } }; // {id, subject, name, tag, date: 'YYYY-MM-DD', needsRevision, completedRevisions}
+function defaultState(){ return { tasks: [], sleep: {}, studyHours: {}, theme: 'default', dailyGoal: { topics: 5, hours: 6 } }; }
+const STORAGE_KEY = 'study-progress-state-v3';
+let currentFilter = 'all';
+let currentTagFilter = 'all';
+let selectedDate = todayStr();
+let selectedAddTag = null;
+let selectedEditTag = null;
+let addNeedsRevision = false;
+
+const REVISION_INTERVALS = [3, 7, 14];
+
+function toggleAddRevisionFlag(){
+  addNeedsRevision = !addNeedsRevision;
+  renderAddRevisionToggle();
+}
+function renderAddRevisionToggle(){
+  const line = document.getElementById('addRevToggle');
+  const dot = document.getElementById('addRevDot');
+  if(!line || !dot) return;
+  line.classList.toggle('active', addNeedsRevision);
+  dot.textContent = addNeedsRevision ? '✓' : '';
+}
+window.toggleAddRevisionFlag = toggleAddRevisionFlag;
+
+function toggleTaskRevision(id){
+  const t = state.tasks.find(x => x.id === id);
+  if(!t) return;
+  t.needsRevision = !t.needsRevision;
+  if(!Array.isArray(t.completedRevisions)) t.completedRevisions = [];
+  saveState();
+  render();
+}
+window.toggleTaskRevision = toggleTaskRevision;
+
+function markRevisionDone(taskId, intervalDay){
+  const t = state.tasks.find(x => x.id === taskId);
+  if(!t) return;
+  if(!Array.isArray(t.completedRevisions)) t.completedRevisions = [];
+  if(!t.completedRevisions.includes(intervalDay)){
+    t.completedRevisions.push(intervalDay);
+  }
+  // Also log a quick Revision entry for today if not already logged today for this topic
+  const today = todayStr();
+  const revName = `${t.name} (Day ${intervalDay} রিভিশন)`;
+  const alreadyLogged = state.tasks.some(x => x.date === today && x.subject === t.subject && x.name === revName);
+  if(!alreadyLogged){
+    state.tasks.push({
+      id: Date.now() + Math.random().toString(36).slice(2,7),
+      subject: t.subject,
+      name: revName,
+      tag: 'Revision',
+      date: today,
+      needsRevision: false,
+      completedRevisions: []
+    });
+  }
+  saveState();
+  render();
+}
+window.markRevisionDone = markRevisionDone;
+
+function getRevisionsOverview(refDateStr){
+  const due = [];
+  const upcoming = [];
+  (state.tasks || []).forEach(t => {
+    if(!t.needsRevision || !t.date) return;
+    const doneList = Array.isArray(t.completedRevisions) ? t.completedRevisions : [];
+    for(const interval of REVISION_INTERVALS){
+      if(doneList.includes(interval)) continue;
+      const dueDate = shiftDate(t.date, interval);
+      const daysDiff = daysBetween(dueDate, refDateStr); // >=0 means due today or overdue
+      const studiedAgo = daysBetween(t.date, refDateStr);
+      if(daysDiff >= 0){
+        due.push({ task: t, interval, dueDate, studiedAgo: Math.max(1, studiedAgo), overdueDays: daysDiff });
+        break; // only show the earliest pending milestone for a given topic at once
+      } else {
+        upcoming.push({ task: t, interval, dueDate, inDays: Math.abs(daysDiff) });
+        break;
+      }
+    }
+  });
+  due.sort((a,b) => b.overdueDays - a.overdueDays);
+  upcoming.sort((a,b) => a.inDays - b.inDays);
+  return { due, upcoming };
+}
+
+function renderRevisionReminders(){
+  const today = todayStr();
+  const { due, upcoming } = getRevisionsOverview(today);
+
+  const homeBadge = document.getElementById('homeRevCountBadge');
+  const homeList = document.getElementById('homeRevisionList');
+  const logCard = document.getElementById('logRevisionCard');
+  const logBadge = document.getElementById('logRevCountBadge');
+  const logList = document.getElementById('logRevisionList');
+
+  if(homeBadge) homeBadge.textContent = due.length;
+  if(logBadge) logBadge.textContent = due.length;
+
+  const buildDueItemHtml = (item) => {
+    const t = item.task;
+    const c = SUBJECT_COLORS[t.subject] || '#b18aff';
+    const tagMeta = getTagMeta(t.tag);
+    const tagHtml = tagMeta ? `<span class="task-tag-badge" style="color:${tagMeta.color}; background:${tagMeta.bg}; border-color:${tagMeta.color}55;">${escapeHtml(tagMeta.label)}</span>` : '';
+    const agoText = item.overdueDays === 0
+      ? `${item.studiedAgo} দিন আগে পড়া হয়েছে · আজ রিভিশন ডে`
+      : `${item.studiedAgo} দিন আগে পড়া (${item.overdueDays} দিন ধরে বাকি)`;
+    return `<div class="rev-item" style="border-left-color:${c}">
+      <div class="rev-item-info">
+        <div class="rev-item-top">
+          <span style="color:${c}">${escapeHtml(t.subject)}</span>
+          <span class="rev-stage-pill">Day ${item.interval}</span>
+          ${tagHtml}
+        </div>
+        <div class="rev-item-name">${escapeHtml(t.name)}</div>
+        <div class="rev-item-meta">📅 ${agoText}</div>
+      </div>
+      <button class="rev-done-btn" onclick="markRevisionDone('${t.id}', ${item.interval})">✅ রিভিশন ডান</button>
+    </div>`;
+  };
+
+  if(homeList){
+    let html = '';
+    if(due.length === 0){
+      html += `<div class="summary-empty" style="padding:6px 4px;">🎉 আজ কোনো পেন্ডিং রিভিশন নেই!</div>`;
+    } else {
+      html += due.map(buildDueItemHtml).join('');
+    }
+    if(upcoming.length > 0){
+      html += `<div class="rev-upcoming-title">⏳ আসন্ন রিভিশন (${Math.min(upcoming.length, 3)}টি)</div>`;
+      html += upcoming.slice(0, 3).map(u => {
+        const c = SUBJECT_COLORS[u.task.subject] || '#b18aff';
+        return `<div class="rev-upcoming-row">
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong style="color:${c}">${escapeHtml(u.task.subject)}</strong> · ${escapeHtml(u.task.name)}</span>
+          <span style="color:var(--gold); font-weight:700; flex-shrink:0;">${u.inDays} দিন পর (Day ${u.interval})</span>
+        </div>`;
+      }).join('');
+    }
+    homeList.innerHTML = html;
+  }
+
+  if(logCard && logList){
+    if(due.length > 0){
+      logCard.style.display = 'block';
+      logList.innerHTML = due.map(buildDueItemHtml).join('');
+    } else {
+      logCard.style.display = 'none';
+      logList.innerHTML = '';
+    }
+  }
+}
+
+/* Feature 4: Daily Study Goal Modal & Helpers */
+function ensureDailyGoal(){
+  if(!state.dailyGoal || typeof state.dailyGoal !== 'object'){
+    state.dailyGoal = { topics: 5, hours: 6 };
+  }
+  if(!state.dailyGoal.topics || state.dailyGoal.topics < 1) state.dailyGoal.topics = 5;
+  if(!state.dailyGoal.hours || state.dailyGoal.hours <= 0) state.dailyGoal.hours = 6;
+}
+function openGoalModal(){
+  ensureDailyGoal();
+  document.getElementById('goalTopicsInput').value = state.dailyGoal.topics;
+  document.getElementById('goalHoursInput').value = state.dailyGoal.hours;
+  document.getElementById('goalModalOverlay').classList.add('open');
+}
+function closeGoalModal(){
+  document.getElementById('goalModalOverlay').classList.remove('open');
+}
+function saveDailyGoalSettings(){
+  const tVal = parseInt(document.getElementById('goalTopicsInput').value, 10);
+  const hVal = parseFloat(document.getElementById('goalHoursInput').value);
+  if(isNaN(tVal) || tVal < 1 || isNaN(hVal) || hVal <= 0){
+    showTimerToast('সঠিক টার্গেট সংখ্যা দাও', true);
+    return;
+  }
+  state.dailyGoal = { topics: Math.min(50, tVal), hours: Math.min(24, Math.round(hVal*10)/10) };
+  saveState();
+  closeGoalModal();
+  render();
+}
+window.openGoalModal = openGoalModal;
+window.closeGoalModal = closeGoalModal;
+window.saveDailyGoalSettings = saveDailyGoalSettings;
+
+const STUDY_TAGS = [
+  { key: 'Theory',         label: '📖 Theory',         color: '#5ac8fa', bg: 'rgba(90,200,250,0.18)',  glow: 'rgba(90,200,250,0.35)' },
+  { key: 'Math',           label: '🧮 Math',           color: '#ff6fa8', bg: 'rgba(255,111,168,0.18)', glow: 'rgba(255,111,168,0.35)' },
+  { key: 'MCQ',            label: '❓ MCQ',            color: '#ffcd4e', bg: 'rgba(255,205,78,0.18)',  glow: 'rgba(255,205,78,0.35)' },
+  { key: 'Revision',       label: '🔁 Revision',       color: '#3fe0d0', bg: 'rgba(63,224,208,0.18)',  glow: 'rgba(63,224,208,0.35)' },
+  { key: 'Question Solve', label: '📝 Question Solve', color: '#b18aff', bg: 'rgba(177,138,255,0.18)', glow: 'rgba(177,138,255,0.35)' }
+];
+
+function getTagMeta(tagKey){
+  if(!tagKey) return null;
+  return STUDY_TAGS.find(t => t.key === tagKey) || { key: tagKey, label: '🏷️ ' + tagKey, color: '#a89bd6', bg: 'rgba(168,155,214,0.15)', glow: 'rgba(168,155,214,0.3)' };
+}
+
+function renderTagPills(){
+  const addWrap = document.getElementById('addTagPills');
+  const clearBtn = document.getElementById('selectedTagClear');
+  if(addWrap){
+    addWrap.innerHTML = STUDY_TAGS.map(t => {
+      const active = selectedAddTag === t.key;
+      return `<button type="button" class="tag-pill ${active?'active':''}" style="--tag-color:${t.color}; --tag-bg:${t.bg}; --tag-glow:${t.glow}; ${active?`color:${t.color};`:''}" onclick="selectAddTag('${t.key}')">${t.label}</button>`;
+    }).join('');
+  }
+  if(clearBtn) clearBtn.style.display = selectedAddTag ? 'inline' : 'none';
+
+  const editWrap = document.getElementById('editTagPills');
+  if(editWrap){
+    editWrap.innerHTML = STUDY_TAGS.map(t => {
+      const active = selectedEditTag === t.key;
+      return `<button type="button" class="tag-pill ${active?'active':''}" style="--tag-color:${t.color}; --tag-bg:${t.bg}; --tag-glow:${t.glow}; ${active?`color:${t.color};`:''}" onclick="selectEditTag('${t.key}')">${t.label}</button>`;
+    }).join('');
+  }
+}
+
+function selectAddTag(tagKey){
+  selectedAddTag = (selectedAddTag === tagKey) ? null : tagKey;
+  renderTagPills();
+}
+function selectEditTag(tagKey){
+  selectedEditTag = (selectedEditTag === tagKey) ? null : tagKey;
+  renderTagPills();
+}
+window.selectAddTag = selectAddTag;
+window.selectEditTag = selectEditTag;
+
+/* ===================== Feature 1: Live Study Timer & Pomodoro ===================== */
+let studyTimer = {
+  mode: 'stopwatch',       // 'stopwatch' | 'pomodoro'
+  pomoPhase: 'focus',      // 'focus' (25m) | 'break' (5m)
+  running: false,
+  elapsedSec: 0,           // total elapsed seconds in stopwatch, or elapsed in current pomo
+  remainingSec: 25 * 60,   // for pomodoro countdown
+  lastTick: null,
+  intervalId: null
+};
+
+function formatTimerClock(sec, forceHH){
+  sec = Math.max(0, Math.floor(sec));
+  const hh = Math.floor(sec / 3600);
+  const mm = Math.floor((sec % 3600) / 60);
+  const ss = sec % 60;
+  if(forceHH || hh > 0){
+    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  }
+  return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function updateTimerUI(){
+  const digitsEl = document.getElementById('timerDigits');
+  const statusEl = document.getElementById('timerSubStatus');
+  const btnEl = document.getElementById('timerStartPauseBtn');
+  const swBtn = document.getElementById('modeStopwatchBtn');
+  const pmBtn = document.getElementById('modePomodoroBtn');
+  const pomoRow = document.getElementById('pomoSubRow');
+  const focusChip = document.getElementById('pomoFocusChip');
+  const breakChip = document.getElementById('pomoBreakChip');
+  const dateLbl = document.getElementById('timerDateLabel');
+
+  if(dateLbl){
+    dateLbl.textContent = new Date(selectedDate+'T00:00:00').toLocaleDateString('bn-BD', {day:'numeric', month:'long'});
+  }
+  if(!digitsEl) return;
+
+  if(swBtn && pmBtn){
+    swBtn.classList.toggle('active', studyTimer.mode === 'stopwatch');
+    pmBtn.classList.toggle('active', studyTimer.mode === 'pomodoro');
+  }
+  if(pomoRow){
+    pomoRow.classList.toggle('show', studyTimer.mode === 'pomodoro');
+  }
+  if(focusChip && breakChip){
+    focusChip.classList.toggle('active', studyTimer.pomoPhase === 'focus');
+    breakChip.classList.toggle('active', studyTimer.pomoPhase === 'break');
+  }
+
+  digitsEl.classList.toggle('running', studyTimer.running);
+
+  if(studyTimer.mode === 'stopwatch'){
+    digitsEl.textContent = formatTimerClock(studyTimer.elapsedSec, true);
+    if(studyTimer.running){
+      statusEl.textContent = '🔥 পড়া চলছে... মনোযোগ ধরে রাখো!';
+    } else if(studyTimer.elapsedSec > 0){
+      statusEl.textContent = `⏸️ পজ করা আছে · মোট ${formatHM(studyTimer.elapsedSec/3600, {long:true})}`;
+    } else {
+      statusEl.textContent = 'পড়তে বসার সময় শুরু করো চাপো';
+    }
+  } else {
+    digitsEl.textContent = formatTimerClock(studyTimer.remainingSec, false);
+    if(studyTimer.pomoPhase === 'focus'){
+      statusEl.textContent = studyTimer.running ? '🍅 ফোকাস সেশন চলছে (২৫ মি.)' : (studyTimer.elapsedSec > 0 ? `⏸️ ফোকাস পজড (${Math.floor(studyTimer.elapsedSec/60)} মি. হয়েছে)` : '🎯 ২৫ মিনিটের ফোকাস সেশন');
+    } else {
+      statusEl.textContent = studyTimer.running ? '☕ ব্রেক চলছে — একটু বিশ্রাম নাও' : '☕ ৫ মিনিটের ছোট ব্রেক';
+    }
+  }
+
+  if(btnEl){
+    if(studyTimer.running){
+      btnEl.className = 'timer-btn pause';
+      btnEl.innerHTML = '⏸️ পজ করো';
+    } else {
+      btnEl.className = 'timer-btn start';
+      btnEl.innerHTML = (studyTimer.elapsedSec > 0) ? '▶️ আবার শুরু' : '▶️ শুরু করো';
+    }
+  }
+}
+
+function showTimerToast(msg, isWarn){
+  const t = document.getElementById('timerToast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.color = isWarn ? 'var(--coral)' : 'var(--green)';
+  t.style.borderColor = isWarn ? 'rgba(255,138,92,0.4)' : 'rgba(111,227,160,0.35)';
+  t.style.background = isWarn ? 'rgba(255,138,92,0.12)' : 'rgba(111,227,160,0.12)';
+  t.classList.add('show');
+  clearTimeout(window.__timerToastTimeout);
+  window.__timerToastTimeout = setTimeout(()=>{ t.classList.remove('show'); }, 3800);
+}
+
+function tickStudyTimer(){
+  if(!studyTimer.running) return;
+  const now = Date.now();
+  const delta = Math.max(0, Math.round((now - (studyTimer.lastTick || now)) / 1000));
+  if(delta < 1) return;
+  studyTimer.lastTick = now;
+
+  if(studyTimer.mode === 'stopwatch'){
+    studyTimer.elapsedSec += delta;
+  } else {
+    if(studyTimer.pomoPhase === 'focus'){
+      studyTimer.elapsedSec += delta;
+    }
+    studyTimer.remainingSec = Math.max(0, studyTimer.remainingSec - delta);
+    if(studyTimer.remainingSec === 0){
+      pauseStudyTimer();
+      if(studyTimer.pomoPhase === 'focus'){
+        showTimerToast('🎉 ২৫ মিনিট ফোকাস সম্পন্ন! স্টাডি আওয়ারে যোগ করো অথবা ৫ মিনিট ব্রেক নাও।', false);
+      } else {
+        showTimerToast('⏰ ৫ মিনিট ব্রেক শেষ! আবার ফোকাস শুরু করো।', false);
+      }
+    }
+  }
+  updateTimerUI();
+}
+
+function toggleTimerStartPause(){
+  if(studyTimer.running){
+    pauseStudyTimer();
+  } else {
+    if(studyTimer.mode === 'pomodoro' && studyTimer.remainingSec === 0){
+      studyTimer.remainingSec = (studyTimer.pomoPhase === 'focus' ? 25 : 5) * 60;
+    }
+    studyTimer.running = true;
+    studyTimer.lastTick = Date.now();
+    if(studyTimer.intervalId) clearInterval(studyTimer.intervalId);
+    studyTimer.intervalId = setInterval(tickStudyTimer, 500);
+    updateTimerUI();
+  }
+}
+
+function pauseStudyTimer(){
+  studyTimer.running = false;
+  studyTimer.lastTick = null;
+  if(studyTimer.intervalId){ clearInterval(studyTimer.intervalId); studyTimer.intervalId = null; }
+  updateTimerUI();
+}
+
+function resetStudyTimer(){
+  pauseStudyTimer();
+  studyTimer.elapsedSec = 0;
+  studyTimer.remainingSec = (studyTimer.pomoPhase === 'focus' ? 25 : 5) * 60;
+  updateTimerUI();
+}
+
+function setTimerMode(mode){
+  if(studyTimer.mode === mode) return;
+  pauseStudyTimer();
+  studyTimer.mode = mode;
+  studyTimer.elapsedSec = 0;
+  studyTimer.pomoPhase = 'focus';
+  studyTimer.remainingSec = 25 * 60;
+  updateTimerUI();
+}
+
+function setPomodoroPhase(phase){
+  pauseStudyTimer();
+  studyTimer.pomoPhase = phase;
+  studyTimer.remainingSec = (phase === 'focus' ? 25 : 5) * 60;
+  if(phase === 'break') studyTimer.elapsedSec = 0;
+  updateTimerUI();
+}
+
+function saveTimerToStudyHours(){
+  pauseStudyTimer();
+  const sec = studyTimer.elapsedSec;
+  if(sec < 60){
+    showTimerToast('⚠️ কমপক্ষে ১ মিনিট পড়ার পর স্টাডি আওয়ারে যোগ করো!', true);
+    return;
+  }
+  const addedHours = sec / 3600;
+  if(!state.studyHours) state.studyHours = {};
+  const prevHours = state.studyHours[selectedDate] || 0;
+  const newTotal = Math.round((prevHours + addedHours) * 1000) / 1000;
+  state.studyHours[selectedDate] = newTotal;
+
+  studyTimer.elapsedSec = 0;
+  if(studyTimer.mode === 'pomodoro'){
+    studyTimer.remainingSec = (studyTimer.pomoPhase === 'focus' ? 25 : 5) * 60;
+  }
+
+  saveState();
+  render();
+  updateTimerUI();
+  showTimerToast(`✅ ${formatHM(addedHours, {long:true})} আজকের স্টাডি আওয়ারে যোগ হয়েছে! (মোট: ${formatHM(newTotal, {long:true})})`, false);
+}
+
+window.setTimerMode = setTimerMode;
+window.setPomodoroPhase = setPomodoroPhase;
+window.toggleTimerStartPause = toggleTimerStartPause;
+window.resetStudyTimer = resetStudyTimer;
+window.saveTimerToStudyHours = saveTimerToStudyHours;
+
+const SUBJECT_COLORS = {
+  'Bangla 1st': '#ff8a5c', 'Bangla 2nd': '#ff6b4a', 'English 1st': '#5ac8fa', 'English 2nd': '#3bb5e8',
+  'ICT': '#b18aff', 'Higher Math 1st': '#ff6fa8', 'Higher Math 2nd': '#e85d96', 'Physics 1st': '#3fe0d0',
+  'Physics 2nd': '#2cc2b3', 'Chemistry 1st': '#ffcd4e', 'Chemistry 2nd': '#e6b53c', 'Zoology': '#6fe3a0',
+  'Botany': '#5ad18c', 'Practical': '#a89bd6', "Other's": '#9891b8'
+};
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function formatDateLabel(dateStr){
+  const today = todayStr();
+  const d = new Date(dateStr + 'T00:00:00');
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.getFullYear()+'-'+String(yesterday.getMonth()+1).padStart(2,'0')+'-'+String(yesterday.getDate()).padStart(2,'0');
+  if(dateStr === today) return { main:'আজ', sub: d.toLocaleDateString('bn-BD', {day:'numeric', month:'long'}) };
+  if(dateStr === yStr) return { main:'গতকাল', sub: d.toLocaleDateString('bn-BD', {day:'numeric', month:'long'}) };
+  return { main: d.toLocaleDateString('bn-BD', {weekday:'long'}), sub: d.toLocaleDateString('bn-BD', {day:'numeric', month:'long', year:'numeric'}) };
+}
+
+function shiftDate(dateStr, days){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  if(tabId === 'home') navItems[0].classList.add('active');
+  if(tabId === 'log') navItems[1].classList.add('active');
+  if(tabId === 'sleep') navItems[2].classList.add('active');
+  if(tabId === 'calendar') navItems[3].classList.add('active');
+  if(tabId === 'tools') navItems[4].classList.add('active');
+}
+window.switchTab = switchTab;
+
+function enableDragScroll(el){
+  if(!el || el.dataset.dragBound) return;
+  el.dataset.dragBound = '1';
+  let dragging = false, startX = 0, startScroll = 0, moved = false;
+  el.addEventListener('pointerdown', e=>{
+    dragging = true; moved = false; startX = e.clientX; startScroll = el.scrollLeft;
+    el.classList.add('dragging'); el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx = e.clientX - startX;
+    if(Math.abs(dx) > 3) moved = true;
+    el.scrollLeft = startScroll - dx;
+  });
+  const end = e=>{
+    dragging = false; el.classList.remove('dragging');
+    if(moved) el.dataset.justDragged = '1';
+    if(moved && e.pointerId != null) try{ el.releasePointerCapture(e.pointerId); }catch(err){}
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('pointerleave', ()=>{ if(dragging){ dragging=false; el.classList.remove('dragging'); } });
+  el.addEventListener('click', e=>{ if(el.dataset.justDragged === '1'){ e.stopPropagation(); e.preventDefault(); el.dataset.justDragged = ''; } }, true);
+}
+
+function daysBetween(d1, d2){
+  const a = new Date(d1+'T00:00:00');
+  const b = new Date(d2+'T00:00:00');
+  return Math.round((b-a)/86400000);
+}
+
+async function loadState(){
+  try{ const local = localStorage.getItem(STORAGE_KEY); if(local) state = JSON.parse(local); }catch(e){}
+  if(!state.tasks) state.tasks = [];
+  if(!state.sleep || typeof state.sleep !== 'object') state.sleep = {};
+  if(!state.studyHours || typeof state.studyHours !== 'object') state.studyHours = {};
+  if(!state.theme) state.theme = 'default';
+  ensureDailyGoal();
+  migrateSleepData();
+  applyTheme(state.theme, false);
+  renderThemeGrid();
+  render();
+  startCountdown();
+}
+
+async function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  if(window.saveDataToFirebase && !window.isGuestMode) window.saveDataToFirebase(state);
+}
+
+window.loadStateFromDB = async function() {
+  if(window.loadDataFromFirebase && !window.isGuestMode) {
+    const cloudData = await window.loadDataFromFirebase();
+    if(cloudData) {
+      state = JSON.parse(cloudData);
+      if(!state.sleep || typeof state.sleep !== 'object') state.sleep = {};
+      ensureDailyGoal();
+      migrateSleepData();
+      render();
+    }
+  }
+};
+
+function migrateSleepData(){
+  if(!state.sleep || typeof state.sleep !== 'object'){ state.sleep = {}; return; }
+  Object.keys(state.sleep).forEach(d=>{
+    const v = state.sleep[d];
+    if(v && !Array.isArray(v)){ state.sleep[d] = (v.start || v.end) ? [{ id: 'mig-'+d, start: v.start||null, end: v.end||null, hours: v.hours!=null?v.hours:null }] : []; }
+    else if(!Array.isArray(v)) state.sleep[d] = [];
+  });
+}
+
+function getDayTasks(dateStr){ return state.tasks.filter(t=>t.date===dateStr); }
+function addTask(subject, name, date, tag, needsRevision){
+  state.tasks.push({
+    id: Date.now()+Math.random().toString(36).slice(2,7),
+    subject,
+    name,
+    tag: tag || null,
+    date,
+    needsRevision: !!needsRevision,
+    completedRevisions: []
+  });
+  saveState(); render();
+}
+function deleteTask(id){
+  state.tasks = state.tasks.filter(x=>x.id!==id);
+  saveState(); render();
+}
+window.deleteTask = deleteTask;
+
+function getCountdownTarget(){
+  const now = new Date(); let target = new Date(now.getFullYear(), 7, 15, 0, 0, 0);
+  if(target - now < 0) target = new Date(now.getFullYear()+1, 7, 15, 0, 0, 0);
+  return target;
+}
+function renderCountdownTitle(){
+  const target = getCountdownTarget();
+  const label = target.toLocaleDateString('bn-BD', {day:'numeric', month:'long', year:'numeric'});
+  const titleEl = document.getElementById('cdTitle'); if(titleEl) titleEl.textContent = `${label} পর্যন্ত বাকি`;
+  const picker = document.getElementById('countdownPicker');
+  if(picker) picker.value = target.getFullYear()+'-'+String(target.getMonth()+1).padStart(2,'0')+'-'+String(target.getDate()).padStart(2,'0');
+}
+document.getElementById('countdownPicker').addEventListener('change', (e)=>{
+  if(e.target.value){ state.countdownTarget = e.target.value; saveState(); renderCountdownTitle(); countdownTick(); }
+});
+let countdownTick = function(){};
+function startCountdown(){
+  function tick(){
+    const now = new Date(); const diff = Math.max(0, getCountdownTarget() - now);
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const mins = Math.floor((diff % (1000*60*60)) / (1000*60));
+    if(document.getElementById('cdDays')) document.getElementById('cdDays').textContent = days;
+    if(document.getElementById('cdHours')) document.getElementById('cdHours').textContent = hours;
+    if(document.getElementById('cdMins')) document.getElementById('cdMins').textContent = mins;
+  }
+  countdownTick = tick; renderCountdownTitle(); tick(); setInterval(tick, 30000);
+}
+
+let editingTaskId = null;
+function openEditTaskModal(id){
+  const t = state.tasks.find(x=>x.id===id); if(!t) return;
+  editingTaskId = id;
+  document.getElementById('editTaskName').value = t.name;
+  selectedEditTag = t.tag || null;
+  renderTagPills();
+  document.getElementById('editTaskOverlay').classList.add('open');
+}
+function closeEditTaskModal(){ document.getElementById('editTaskOverlay').classList.remove('open'); editingTaskId = null; }
+function saveEditedTask(){
+  if(!editingTaskId) return; const t = state.tasks.find(x=>x.id===editingTaskId); if(!t) return;
+  const name = document.getElementById('editTaskName').value.trim();
+  if(!name){ showTimerToast('টাস্কের নাম লিখো', true); return; }
+  t.name = name;
+  t.tag = selectedEditTag || null;
+  saveState(); closeEditTaskModal(); render();
+}
+window.openEditTaskModal = openEditTaskModal; window.closeEditTaskModal = closeEditTaskModal; window.saveEditedTask = saveEditedTask;
+function shiftSelectedDate(delta){ selectedDate = shiftDate(selectedDate, delta); render(); }
+function goToTodaySelected(){ selectedDate = todayStr(); render(); }
+window.shiftSelectedDate = shiftSelectedDate; window.goToTodaySelected = goToTodaySelected;
+
+async function manualSync(){
+  const btn = document.getElementById('syncDropdownItem'); if(!btn) return;
+  if(!window.currentUserLoggedIn || window.isGuestMode){
+    const original = btn.textContent; btn.textContent = '⚠️ আগে লগইন করো';
+    setTimeout(()=>{ btn.textContent = original; }, 2200); return;
+  }
+  const original = btn.textContent; btn.textContent = '⏳ সিঙ্ক হচ্ছে...';
+  try{
+    if(window.saveDataToFirebase) await window.saveDataToFirebase(state);
+    if(window.loadDataFromFirebase){
+      const cloudData = await window.loadDataFromFirebase();
+      if(cloudData){ state = JSON.parse(cloudData); migrateSleepData(); try{ localStorage.setItem(STORAGE_KEY, cloudData); }catch(e){} }
+    }
+    render(); btn.textContent = '✅ সিঙ্ক সম্পন্ন';
+  }catch(e){ btn.textContent = '❌ সিঙ্ক ব্যর্থ'; }finally{ setTimeout(()=>{ btn.textContent = original; }, 2200); }
+}
+window.manualSync = manualSync;
+
+function render(){
+  ensureDailyGoal();
+  const label = formatDateLabel(selectedDate);
+  document.getElementById('dateMain').textContent = label.main;
+  document.getElementById('dateSub').textContent = label.sub;
+  document.getElementById('datePicker').value = selectedDate;
+  document.getElementById('addHint').textContent = `এই টাস্কটা ${label.main==='আজ' ? 'আজকের' : label.sub + '-এর'} তারিখে সেভ হবে`;
+
+  const dayTasks = getDayTasks(selectedDate);
+  const total = dayTasks.length;
+  const uniqueSubjects = new Set(dayTasks.map(t=>t.subject)).size;
+  
+  const goalTopics = state.dailyGoal.topics || 5;
+  const goalHours = state.dailyGoal.hours || 6;
+  const overallPct = Math.min(Math.round((total / goalTopics) * 100), 100);
+  const circumference = 232.5;
+  const offset = total > 0 ? (circumference - (circumference * overallPct/100)) : circumference;
+  
+  if(document.getElementById('ringFill')) document.getElementById('ringFill').style.strokeDashoffset = offset;
+  if(document.getElementById('ringLabel')) document.getElementById('ringLabel').textContent = total;
+
+  if(total===0){
+    if(document.getElementById('summaryMain')) document.getElementById('summaryMain').textContent = 'আজকে এখনো কিছু পড়া হয়নি';
+    if(document.getElementById('summarySub')) document.getElementById('summarySub').textContent = `টার্গেট: 0 / ${goalTopics} টি টপিক (0%)`;
+  } else {
+    if(document.getElementById('summaryMain')) document.getElementById('summaryMain').textContent = `আজ ${total} টি টপিক পড়া হয়েছে (${uniqueSubjects} বিষয়)`;
+    if(document.getElementById('summarySub')) document.getElementById('summarySub').textContent = `টার্গেট: ${total} / ${goalTopics} টি টপিক (${overallPct}%)`;
+  }
+
+  // Update Daily Study Goal Dual Progress Bars (for selectedDate / Today)
+  const dayHrs = (state.studyHours || {})[selectedDate] || 0;
+  const hourPct = Math.min(Math.round((dayHrs / goalHours) * 100), 100);
+  const topicTextEl = document.getElementById('goalTopicText');
+  const topicBarEl = document.getElementById('goalTopicBar');
+  const hourTextEl = document.getElementById('goalHourText');
+  const hourBarEl = document.getElementById('goalHourBar');
+  const celebrateEl = document.getElementById('goalCelebrate');
+
+  if(topicTextEl) topicTextEl.textContent = `${total} / ${goalTopics} টপিক (${overallPct}%)`;
+  if(topicBarEl) topicBarEl.style.width = `${overallPct}%`;
+  if(hourTextEl) hourTextEl.textContent = `${dayHrs > 0 ? formatHM(dayHrs) : '0মি'} / ${formatHM(goalHours)} (${hourPct}%)`;
+  if(hourBarEl) hourBarEl.style.width = `${hourPct}%`;
+  if(celebrateEl){
+    const goalMet = (overallPct >= 100 || hourPct >= 100);
+    celebrateEl.classList.toggle('show', goalMet);
+    if(overallPct >= 100 && hourPct >= 100){
+      celebrateEl.textContent = '🏆 অসাধারণ! আজকের টপিক ও স্টাডি আওয়ার—দুটো টার্গেটই ১০০% পূরণ হয়েছে!';
+    } else if(overallPct >= 100){
+      celebrateEl.textContent = '🎉 দারুণ! আজকের টপিক টার্গেট পূরণ হয়েছে!';
+    } else if(hourPct >= 100){
+      celebrateEl.textContent = '🎉 দারুণ! আজকের স্টাডি আওয়ার টার্গেট পূরণ হয়েছে!';
+    }
+  }
+
+  const subjects = Object.keys(SUBJECT_COLORS);
+  const barsEl = document.getElementById('subjectBars');
+  if(barsEl) {
+    const rows = subjects.map(s=>{
+      const subTasks = dayTasks.filter(t=>t.subject===s);
+      if(subTasks.length===0) return '';
+      const count = subTasks.length;
+      const c = SUBJECT_COLORS[s];
+      const subPct = Math.min((count/5)*100, 100); // 5 tasks = full bar visual
+      return `<div class="sbar-row">
+        <div class="sbar-top"><span class="sbar-name" style="color:${c}">${s}</span><span class="sbar-pct">${count} টপিক</span></div>
+        <div class="sbar-bg"><div class="sbar-fill" style="width:${subPct}%; background:${c}"></div></div>
+      </div>`;
+    }).join('');
+    barsEl.innerHTML = rows || '<div class="empty">এখনো কোনো বিষয় পড়া হয়নি</div>';
+  }
+
+  const listEl = document.getElementById('taskList');
+  let filtered = currentFilter==='all' ? dayTasks : dayTasks.filter(t=>t.subject===currentFilter);
+  if(currentTagFilter !== 'all'){
+    filtered = filtered.filter(t => (t.tag || '') === currentTagFilter);
+  }
+  if(listEl) {
+    if(filtered.length===0){
+      listEl.innerHTML = `<div class="empty">${(currentFilter==='all' && currentTagFilter==='all') ? 'এই দিনে কোনো পড়া নেই' : 'এই ফিল্টারে কোনো পড়া নেই'}</div>`;
+    } else {
+      listEl.innerHTML = filtered.map(t => {
+        const c = SUBJECT_COLORS[t.subject] || '#b18aff';
+        const tagMeta = getTagMeta(t.tag);
+        const tagBadgeHtml = tagMeta ? `<span class="task-tag-badge" style="color:${tagMeta.color}; background:${tagMeta.bg}; border-color:${tagMeta.color}55;">${escapeHtml(tagMeta.label)}</span>` : '';
+        const revActive = !!t.needsRevision;
+        const doneCount = Array.isArray(t.completedRevisions) ? t.completedRevisions.length : 0;
+        const revLabel = revActive ? `📌 রিভিশন অন (${doneCount}/3)` : '📌 রিভিশন';
+        return `
+        <div class="task" style="border-left-color:${c}">
+          <div class="task-body">
+            <div class="task-subject" style="color:${c}"><span>${t.subject}</span>${tagBadgeHtml}</div>
+            <div class="task-name">${escapeHtml(t.name)}</div>
+          </div>
+          <button class="rev-pin-btn ${revActive?'active':''}" onclick="toggleTaskRevision('${t.id}')" title="৩, ৭ ও ১৪ দিন পর রিভিশন রিমাইন্ডার">${revLabel}</button>
+          <button class="edit-btn" onclick="openEditTaskModal('${t.id}')" title="এডিট করো">✏️</button>
+          <button class="del-btn" onclick="deleteTask('${t.id}')">✕</button>
+        </div>
+      `;}).join('');
+    }
+  }
+
+  renderTagPills();
+  renderAddRevisionToggle();
+  renderRevisionReminders();
+  updateTimerUI();
+  renderHistory();
+  renderStreak();
+  renderTrend();
+  renderMonthlyCalendar();
+  renderWeeklySummary();
+  renderCombinedGraph();
+  renderSubjectLeaderboard();
+  renderSleepPanel();
+  renderStudyPanel();
+  renderCountdownTitle();
+}
+
+let graphRanges = { trend:'week', sleep:'week', study:'week' };
+function setGraphRange(which, range){
+  graphRanges[which] = range;
+  const toggleEl = document.getElementById(which+'RangeToggle');
+  if(toggleEl){
+    toggleEl.querySelectorAll('.rt-btn').forEach(b=> b.classList.remove('active'));
+    const idx = range==='week' ? 0 : 1;
+    toggleEl.querySelectorAll('.rt-btn')[idx].classList.add('active');
+  }
+  if(which==='trend') renderTrend();
+  if(which==='sleep') renderSleepPanel();
+  if(which==='study') renderStudyPanel();
+}
+
+function computeSleepHours(start, end){
+  if(!start || !end) return null;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let mins = (eh*60+em) - (sh*60+sm);
+  if(mins <= 0) mins += 24*60;
+  return Math.round((mins/60)*100)/100;
+}
+function formatHM(h, opts){
+  opts = opts || {}; if(h == null) return '';
+  const totalMin = Math.round(h*60); const hh = Math.floor(totalMin/60); const mm = totalMin%60;
+  const hUnit = opts.long ? ' ঘণ্টা' : 'ঘ'; const mUnit = opts.long ? ' মিনিট' : 'মি'; const sep = opts.long ? ' ' : ' ';
+  if(hh>0 && mm>0) return `${hh}${hUnit}${sep}${mm}${mUnit}`;
+  if(hh>0) return `${hh}${hUnit}`; return `${mm}${mUnit}`;
+}
+function formatHM_EN(h){
+  if(h == null) return '';
+  const totalMin = Math.round(h*60); const hh = Math.floor(totalMin/60); const mm = totalMin%60;
+  if(hh>0 && mm>0) return `${hh}h ${mm}m`;
+  if(hh>0) return `${hh}h`; return `${mm}m`;
+}
+function getSleepCycles(dateStr){ const c = (state.sleep||{})[dateStr]; return Array.isArray(c) ? c : []; }
+function getSleepTotal(dateStr){
+  const cycles = getSleepCycles(dateStr); if(cycles.length===0) return null;
+  return Math.round(cycles.reduce((s,c)=> s + (c.hours!=null ? c.hours : 0), 0)*100)/100;
+}
+function addSleepCycle(){
+  const start = document.getElementById('sleepStartInput').value; const end = document.getElementById('sleepEndInput').value;
+  if(!start || !end){ alert('ঘুমানোর সময় ও ওঠার সময় দুটোই দাও'); return; }
+  const hours = computeSleepHours(start, end);
+  if(!state.sleep) state.sleep = {}; if(!Array.isArray(state.sleep[selectedDate])) state.sleep[selectedDate] = [];
+  state.sleep[selectedDate].push({ id: Date.now()+Math.random().toString(36).slice(2,7), start, end, hours });
+  document.getElementById('sleepStartInput').value = ''; document.getElementById('sleepEndInput').value = '';
+  saveState(); renderSleepPanel();
+}
+function deleteSleepCycle(dateStr, id){
+  if(!Array.isArray(state.sleep[dateStr])) return;
+  state.sleep[dateStr] = state.sleep[dateStr].filter(c=> c.id !== id);
+  saveState(); renderSleepPanel();
+}
+window.deleteSleepCycle = deleteSleepCycle;
+
+function renderSleepPanel(){
+  const label = document.getElementById('sleepDateLabel'); if(!label) return;
+  label.textContent = new Date(selectedDate+'T00:00:00').toLocaleDateString('bn-BD', {day:'numeric', month:'long'});
+  const cycles = getSleepCycles(selectedDate);
+  const listEl = document.getElementById('sleepCycleList');
+  if(listEl){
+    if(cycles.length===0) listEl.innerHTML = `<div class="cycle-empty">এখনো কোনো ঘুম-সাইকেল যোগ করা হয়নি</div>`;
+    else listEl.innerHTML = cycles.map(c=> `<div class="cycle-row"><span class="cycle-time">${c.start} → ${c.end}<span class="cycle-hours">${formatHM(c.hours)}</span></span><button class="cycle-del" onclick="deleteSleepCycle('${selectedDate}','${c.id}')">✕</button></div>`).join('');
+  }
+  const total = getSleepTotal(selectedDate);
+  const resultEl = document.getElementById('sleepResult');
+  if(total != null){ resultEl.className = 'hour-result'; resultEl.innerHTML = `মোট ঘুম <span class="val">${formatHM(total, {long:true})}</span> (${cycles.length} সাইকেল)`; }
+  else { resultEl.className = 'hour-result-empty'; resultEl.textContent = 'এখনো কোনো ডেটা দেওয়া হয়নি'; }
+
+  const range = graphRanges.sleep; const n = range==='month' ? 30 : 7;
+  const days = []; for(let i=n-1; i>=0; i--) days.push(shiftDate(todayStr(), -i));
+  const maxH = Math.max(8, ...days.map(d=> getSleepTotal(d) || 0));
+  const el = document.getElementById('sleepGraphBars');
+  if(el){
+    el.className = 'mini-bars' + (range==='month' ? ' monthly' : '');
+    el.innerHTML = days.map(d=>{
+      const h = getSleepTotal(d); const has = h != null; const pct = has ? Math.max((h/maxH)*100, 6) : 100;
+      const lbl = new Date(d+'T00:00:00').toLocaleDateString('bn-BD', range==='month' ? {day:'numeric'} : {weekday:'short'});
+      return `<div class="mini-col"><div class="mini-bar-track"><div class="mini-bar ${has?'sleep-bar':'empty-bar'}" style="height:${pct}%"></div></div><div class="mini-val">${has ? formatHM(h) : '–'}</div><div class="mini-label">${lbl}</div></div>`;
+    }).join('');
+    enableDragScroll(el);
+  }
+}
+
+function saveStudyEntry(auto){
+  const hRaw = document.getElementById('studyHourPart').value; const mRaw = document.getElementById('studyMinutePart').value;
+  if(hRaw === '' && mRaw === '') return;
+  const hh = hRaw === '' ? 0 : parseInt(hRaw, 10); const mm = mRaw === '' ? 0 : parseInt(mRaw, 10);
+  if(isNaN(hh) || isNaN(mm) || hh < 0 || mm < 0 || mm > 59){ if(!auto) alert('সঠিক ঘণ্টা ও মিনিট দাও'); return; }
+  if(!state.studyHours) state.studyHours = {}; state.studyHours[selectedDate] = hh + (mm/60);
+  saveState(); render();
+}
+
+function renderStudyPanel(){
+  const label = document.getElementById('studyDateLabel'); if(!label) return;
+  label.textContent = new Date(selectedDate+'T00:00:00').toLocaleDateString('bn-BD', {day:'numeric', month:'long'});
+  const hrs = (state.studyHours||{})[selectedDate];
+  const hourInput = document.getElementById('studyHourPart'); const minuteInput = document.getElementById('studyMinutePart');
+  const resultEl = document.getElementById('studyResult');
+  if(hrs != null){
+    const tm = Math.round(hrs*60); hourInput.value = Math.floor(tm/60); minuteInput.value = tm%60;
+    resultEl.className = 'hour-result'; resultEl.innerHTML = `আজ পড়েছো <span class="val">${formatHM(hrs, {long:true})}</span>`;
+  } else {
+    hourInput.value = ''; minuteInput.value = ''; resultEl.className = 'hour-result-empty'; resultEl.textContent = 'এখনো কোনো ডেটা দেওয়া হয়নি';
+  }
+  const range = graphRanges.study; const n = range==='month' ? 30 : 7;
+  const days = []; for(let i=n-1; i>=0; i--) days.push(shiftDate(todayStr(), -i));
+  const maxH = Math.max(8, ...days.map(d=> (state.studyHours||{})[d] || 0));
+  const el = document.getElementById('studyGraphBars');
+  if(el){
+    el.className = 'mini-bars' + (range==='month' ? ' monthly' : '');
+    el.innerHTML = days.map(d=>{
+      const h = (state.studyHours||{})[d]; const has = h != null; const pct = has ? Math.max((h/maxH)*100, 6) : 100;
+      const lbl = new Date(d+'T00:00:00').toLocaleDateString('bn-BD', range==='month' ? {day:'numeric'} : {weekday:'short'});
+      return `<div class="mini-col"><div class="mini-bar-track"><div class="mini-bar ${has?'study-bar':'empty-bar'}" style="height:${pct}%"></div></div><div class="mini-val">${has ? formatHM(h) : '–'}</div><div class="mini-label">${lbl}</div></div>`;
+    }).join('');
+    enableDragScroll(el);
+  }
+}
+
+let lastImageDataUrl = null; let lastImageFilename = null;
+function downloadTaskImage(){
+  const build = ()=>buildTaskImage();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(build); else build();
+}
+function roundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function truncateToWidth(ctx, text, maxWidth){
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  let t = text; while(t.length>1 && ctx.measureText(t+'…').width > maxWidth) t = t.slice(0,-1); return t+'…';
+}
+
+function buildTaskImage(){
+  const dayTasks = getDayTasks(selectedDate);
+  const total = dayTasks.length;
+  const dateObj = new Date(selectedDate+'T00:00:00');
+  const dateLabel = dateObj.toLocaleDateString('bn-BD', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  
+  const scale = 2; const width = 380*scale; const rowH = 56*scale; const headerH = 118*scale; const footerH = 44*scale;
+  const bodyH = Math.max(dayTasks.length,1)*rowH; const height = headerH + bodyH + footerH;
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createLinearGradient(0,0,width,height); grad.addColorStop(0,'#241a4d'); grad.addColorStop(1,'#1a1238');
+  ctx.fillStyle = grad; roundRectPath(ctx,0,0,width,height,24*scale); ctx.fill();
+  
+  ctx.textAlign='center'; ctx.fillStyle='#9891b8'; ctx.font = `${13*scale}px "Noto Sans Bengali"`; ctx.fillText(dateLabel, width/2, 32*scale);
+  ctx.fillStyle='#f3f0fb'; ctx.font = `700 ${19*scale}px "Noto Sans Bengali"`; ctx.fillText('আজকের পড়া', width/2, 60*scale);
+  ctx.fillStyle='#ffcd4e'; ctx.font = `800 ${34*scale}px "Noto Sans Bengali"`; ctx.fillText(`${total} টপিক`, width/2, 100*scale);
+  
+  let y = headerH; ctx.textAlign='left';
+  if(dayTasks.length===0){
+    ctx.fillStyle='#9891b8'; ctx.font = `${13*scale}px "Noto Sans Bengali"`; ctx.textAlign='center'; ctx.fillText('এই দিনে কোনো পড়া নেই', width/2, y+rowH/2+5*scale); y += rowH;
+  } else {
+    dayTasks.forEach(t=>{
+      const c = SUBJECT_COLORS[t.subject] || '#b18aff'; const cy = y + rowH/2;
+      ctx.beginPath(); ctx.arc(28*scale, cy, 5*scale, 0, Math.PI*2); ctx.fillStyle=c; ctx.fill();
+      ctx.font = `700 ${10.5*scale}px "Space Grotesk"`;
+      const subjLabel = t.subject.toUpperCase() + (t.tag ? `  •  [${t.tag.toUpperCase()}]` : '');
+      ctx.fillText(subjLabel, 48*scale, cy-8*scale);
+      ctx.fillStyle = '#efeaf7'; ctx.font = `${13.5*scale}px "Noto Sans Bengali"`;
+      ctx.fillText(truncateToWidth(ctx, t.name, width - 48*scale - 20*scale), 48*scale, cy+11*scale);
+      ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(18*scale, y+rowH); ctx.lineTo(width-18*scale, y+rowH); ctx.stroke();
+      y += rowH;
+    });
+  }
+  ctx.textAlign='center'; ctx.fillStyle='#9891b8'; ctx.font = `${12.5*scale}px "Noto Sans Bengali"`; ctx.fillText(`মোট ${total} টপিক সম্পন্ন`, width/2, y+26*scale);
+  
+  lastImageDataUrl = canvas.toDataURL('image/png'); lastImageFilename = `study-list-${selectedDate}.png`;
+  showImagePreview(lastImageDataUrl);
+}
+function showImagePreview(dataUrl){ document.getElementById('imgPreviewImg').src = dataUrl; document.getElementById('imgPreviewOverlay').classList.add('open'); }
+function closeImagePreview(){ document.getElementById('imgPreviewOverlay').classList.remove('open'); }
+function triggerImageDownload(){
+  if(!lastImageDataUrl) return; const link = document.createElement('a'); link.download = lastImageFilename || 'study-list.png';
+  link.href = lastImageDataUrl; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+const STUDY_TIME_LEVELS = [
+  {max:2,  color:'rgb(230,70,60)',  label:'০–২ ঘ'}, {max:4,  color:'rgb(240,140,60)', label:'২–৪ ঘ'},
+  {max:6,  color:'rgb(230,190,60)', label:'৪–৬ ঘ'}, {max:8,  color:'rgb(150,210,80)', label:'৬–৮ ঘ'},
+  {max:Infinity, color:'rgb(60,210,110)', label:'৮+ ঘ'}
+];
+let calendarView = (()=>{ const d=new Date(); return {year:d.getFullYear(), month:d.getMonth()}; })();
+function shiftCalendarMonth(delta){
+  let {year, month} = calendarView; month += delta;
+  if(month < 0){ month = 11; year -= 1; } if(month > 11){ month = 0; year += 1; }
+  calendarView = {year, month}; renderMonthlyCalendar();
+}
+function hoursToColor(hours){
+  if(hours == null) return null; const h = Math.max(0, hours);
+  const lvl = STUDY_TIME_LEVELS.find(l=> h < l.max) || STUDY_TIME_LEVELS[STUDY_TIME_LEVELS.length-1]; return lvl.color;
+}
+function hoursToLevelIndex(hours){
+  if(hours == null) return -1; const h = Math.max(0, hours);
+  const idx = STUDY_TIME_LEVELS.findIndex(l=> h < l.max); return idx === -1 ? STUDY_TIME_LEVELS.length-1 : idx;
+}
+
+function renderMonthlyCalendar(){
+  const grid = document.getElementById('calGrid'); const monthLabel = document.getElementById('monthLabel');
+  if(!grid) return; const {year, month} = calendarView; const daysInMonth = new Date(year, month+1, 0).getDate();
+  const monthNames = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  monthLabel.textContent = `${monthNames[month]} ${year}`;
+  const weekdayRow = document.getElementById('calWeekdayRow');
+  if(weekdayRow) weekdayRow.innerHTML = ['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি'].map(w=>`<span>${w}</span>`).join('');
+  const firstWeekday = new Date(year, month, 1).getDay();
+  let html = ''; for(let i=0; i<firstWeekday; i++) html += `<div class="cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hrs = (state.studyHours||{})[dateStr]; const cellColor = hoursToColor(hrs);
+    const dayClass = cellColor ? 'day-studied' : 'day-empty';
+    const bgStyle = cellColor ? `background:${cellColor}22;` : '';
+    const barPct = cellColor ? Math.max(14, Math.min(100, ((hrs||0)/8)*100)) : 0;
+    html += `<div class="cal-cell ${dateStr === todayStr()?'today':''} ${dayClass}" style="${bgStyle}" onclick="showDayPopup('${dateStr}')">
+      <span class="cal-num">${d}</span>${hrs!=null?`<span class="cal-hours">${formatHM(hrs)}</span>`:''}${cellColor?`<span class="cal-bar" style="background:${cellColor}; width:${barPct}%"></span>`:''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  document.getElementById('calLegend').innerHTML = STUDY_TIME_LEVELS.map(l=>`<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${l.color}"></span>${l.label}</div>`).join('');
+}
+
+function renderStreak(){
+  let streak = 0; let d = todayStr();
+  while(true){ const tasks = state.tasks.filter(t=>t.date===d); if(tasks.length > 0){ streak++; d = shiftDate(d, -1); } else if(d === todayStr()){ d = shiftDate(d, -1); continue; } else break; }
+  if(document.getElementById('streakBadge')) document.getElementById('streakBadge').textContent = `🔥 ${streak} দিন স্ট্রিক`;
+}
+
+function renderTrend(){
+  const range = graphRanges.trend; const n = range==='month' ? 30 : 7;
+  const days = []; for(let i=n-1; i>=0; i--) days.push(shiftDate(todayStr(), -i));
+  const el = document.getElementById('trendBars'); if(!el) return;
+  const counts = days.map(d=> state.tasks.filter(t=>t.date===d).length);
+  const maxC = Math.max(5, ...counts);
+  el.className = 'trend-bars' + (range==='month' ? ' monthly' : '');
+  el.innerHTML = days.map((d, i)=>{
+    const count = counts[i]; const pct = count > 0 ? Math.max((count/maxC)*100, 6) : 100;
+    const isSelected = d === selectedDate;
+    const lbl = new Date(d+'T00:00:00').toLocaleDateString('bn-BD', range==='month' ? {day:'numeric'} : {weekday:'short'});
+    return `<div class="trend-col" onclick="jumpToDate('${d}')">
+      <div class="trend-bar-track"><div class="trend-bar ${count>0?(d===todayStr()?'today-bar':''):'empty-bar'}" style="height:${pct}%"></div></div>
+      <div class="trend-label ${isSelected?'active':''}">${lbl}</div>
+      <div class="trend-val">${count>0?count:''}</div>
+    </div>`;
+  }).join('');
+  enableDragScroll(el);
+}
+
+let historyExpanded = false;
+function renderHistory(){
+  const dateMap = {};
+  state.tasks.forEach(t=>{ if(!dateMap[t.date]) dateMap[t.date] = 0; dateMap[t.date]++; });
+  const dates = Object.keys(dateMap).filter(d=>d!==selectedDate).sort((a,b)=> b.localeCompare(a));
+  const historyEl = document.getElementById('historyList'); if(!historyEl) return;
+  if(dates.length===0){ historyEl.innerHTML = `<div class="history-empty">এখনো আগের কোনো দিনের ডেটা নেই</div>`; return; }
+  const LIMIT = 5; const shown = historyExpanded ? dates : dates.slice(0, LIMIT);
+  let html = shown.map(d=>{
+    const c = dateMap[d]; const label = formatDateLabel(d);
+    return `<div class="history-row" onclick="jumpToDate('${d}')"><div class="history-date">${label.main==='আজ'?label.sub:label.main + ' · ' + label.sub}</div><div class="history-pct">${c} টপিক</div></div>`;
+  }).join('');
+  if(dates.length > LIMIT) html += `<button class="history-more" onclick="toggleHistoryExpanded()">${historyExpanded ? '▲ কম দেখাও' : `▼ আরও ${dates.length-LIMIT}টি দেখাও`}</button>`;
+  historyEl.innerHTML = html;
+}
+function toggleHistoryExpanded(){ historyExpanded = !historyExpanded; renderHistory(); }
+window.toggleHistoryExpanded = toggleHistoryExpanded;
+
+function jumpToDate(d){ selectedDate = d; switchTab('log'); render(); }
+function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+function renderWeeklySummary(){
+  const statsGrid = document.getElementById('summaryStatsGrid'); const daysBox = document.getElementById('summaryDaysBox');
+  if(!statsGrid) return;
+  const days = []; for(let i=6; i>=0; i--) days.push(shiftDate(todayStr(), -i));
+  const sleepEntries = days.map(d=> ({d, v: getSleepTotal(d)})).filter(e=> e.v != null);
+  const studyEntries = days.map(d=> ({d, v: (state.studyHours||{})[d]})).filter(e=> e.v != null);
+  const avg = arr => arr.length ? arr.reduce((s,e)=> s+e.v, 0)/arr.length : null;
+  const avgSleep = avg(sleepEntries); const avgStudy = days.reduce((s,d)=> s + ((state.studyHours||{})[d] || 0), 0) / days.length;
+  statsGrid.innerHTML = `<div class="summary-stat"><div class="s-label">😴 গড় ঘুম (৭ দিন)</div><div class="s-val">${avgSleep!=null ? formatHM(avgSleep) : '—'}</div></div><div class="summary-stat"><div class="s-label">📚 গড় স্টাডি (৭ দিন)</div><div class="s-val">${avgStudy!=null ? formatHM(avgStudy) : '—'}</div></div>`;
+  if(studyEntries.length === 0){ daysBox.innerHTML = `<div class="summary-empty">এই সপ্তাহে এখনো কোনো স্টাডি ডেটা নেই</div>`; return; }
+  const best = studyEntries.reduce((a,b)=> b.v>a.v ? b : a); const worst = studyEntries.reduce((a,b)=> b.v<a.v ? b : a);
+  let rows = `<div class="summary-day-row"><span><span class="tag">🏆</span> সেরা দিন — ${formatDateLabel(best.d).main==='আজ' ? formatDateLabel(best.d).sub : formatDateLabel(best.d).main}</span><span class="val">${formatHM(best.v)}</span></div>`;
+  if(worst.d !== best.d) rows += `<div class="summary-day-row"><span><span class="tag">🐢</span> কম পড়া দিন — ${formatDateLabel(worst.d).main==='আজ' ? formatDateLabel(worst.d).sub : formatDateLabel(worst.d).main}</span><span class="val">${formatHM(worst.v)}</span></div>`;
+  daysBox.innerHTML = rows;
+}
+
+const COMBINED_SERIES_DEFS = { sleep: {label:'ঘুম', colorHex:'#b18aff'}, study: {label:'স্টাডি', colorHex:'#ffcd4e'}, task: {label:'টপিক', colorHex:'#ff8a5c'} };
+let combinedActive = {sleep:true, study:true, task:true}; let combinedRange = 'week'; let combinedSelectedDate = null;
+function toggleCombinedSeries(key){ combinedActive[key] = !combinedActive[key]; renderCombinedGraph(); }
+window.toggleCombinedSeries = toggleCombinedSeries;
+function setCombinedRange(range){ combinedRange = range; const toggle = document.getElementById('combinedRangeToggle'); if(toggle){ toggle.querySelectorAll('.rt-btn').forEach(b=>b.classList.remove('active')); toggle.querySelectorAll('.rt-btn')[range==='week'?0:1].classList.add('active'); } renderCombinedGraph(); }
+window.setCombinedRange = setCombinedRange;
+function selectCombinedDay(d){ combinedSelectedDate = d; renderCombinedReadout(); }
+window.selectCombinedDay = selectCombinedDay;
+
+function renderCombinedGraph(){
+  const toggleRow = document.getElementById('combinedToggleRow'); const wrap = document.getElementById('combinedChartWrap');
+  if(!wrap) return;
+  toggleRow.innerHTML = Object.keys(COMBINED_SERIES_DEFS).map(key=>{
+    const def = COMBINED_SERIES_DEFS[key]; const isActive = combinedActive[key];
+    return `<div class="combined-chip ${isActive?'active':''}" style="${isActive?`color:${def.colorHex};border-color:${def.colorHex};`:''}" onclick="toggleCombinedSeries('${key}')"><span class="dot" style="background:${def.colorHex}"></span>${def.label}</div>`;
+  }).join('');
+  const n = combinedRange==='month' ? 30 : 7; const days = []; for(let i=n-1;i>=0;i--) days.push(shiftDate(todayStr(), -i));
+  const dataByKey = { sleep: days.map(d=> getSleepTotal(d)), study: days.map(d=> { const v=(state.studyHours||{})[d]; return v==null?null:v; }), task: days.map(d=> { const c = state.tasks.filter(t=>t.date===d).length; return c>0?c:null; }) };
+  const activeKeys = Object.keys(COMBINED_SERIES_DEFS).filter(k=>combinedActive[k]);
+  
+  let yMaxHours = 8;
+  ['sleep','study'].forEach(k=>{ if(combinedActive[k]) dataByKey[k].forEach(v=>{ if(v!=null && v>yMaxHours) yMaxHours = v; }); });
+  let maxTasks = 5;
+  if(combinedActive.task) dataByKey.task.forEach(v=>{ if(v!=null && v>maxTasks) maxTasks = v; });
+
+  const W = 320, H = 160, padL = 6, padR = 6, padT = 24, padB = 16;
+  const plotW = W-padL-padR, plotH = H-padT-padB; const stepX = days.length>1 ? plotW/(days.length-1) : 0;
+  function yFor(v, key){ if(v==null) return null; const val = key==='task' ? (v/maxTasks)*yMaxHours : v; const clamped = Math.max(0, Math.min(val, yMaxHours)); return padT + plotH - (clamped/yMaxHours)*plotH; }
+  function xFor(i){ return padL + i*stepX; }
+
+  let svgParts = `<defs><filter id="cgLineGlow" x="-30%" y="-40%" width="160%" height="180%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity="0.35"/></filter></defs>`;
+  for(let g=0; g<=4; g++){ const gy = padT + (plotH/4)*g; svgParts += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="rgba(255,255,255,0.07)" stroke-width="1" stroke-dasharray="2,3"/>`; }
+  if(activeKeys.length === 0){ wrap.innerHTML = `<div class="summary-empty">অন্তত একটা ডেটা টাইপ সিলেক্ট করো</div>`; return; }
+
+  function smoothSubpath(pts){
+    if(pts.length===0 || pts.length===1) return '';
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0 = pts[i-1] || pts[i]; const p1 = pts[i]; const p2 = pts[i+1]; const p3 = pts[i+2] || p2;
+      const c1x = p1.x + (p2.x - p0.x)/6, c1y = p1.y + (p2.y - p0.y)/6; const c2x = p2.x - (p3.x - p1.x)/6, c2y = p2.y - (p3.y - p1.y)/6;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    } return d;
+  }
+  function buildSmoothPath(vals, key){
+    let segments = [], current = [];
+    vals.forEach((v,i)=>{ const y = yFor(v, key); if(y==null){ if(current.length) segments.push(current); current = []; return; } current.push({x:xFor(i), y}); });
+    if(current.length) segments.push(current); return segments.map(smoothSubpath).join(' ');
+  }
+
+  const peaks = [];
+  activeKeys.forEach(key=>{
+    const def = COMBINED_SERIES_DEFS[key]; const vals = dataByKey[key]; const path = buildSmoothPath(vals, key);
+    const firstIdx = vals.findIndex(v=>v!=null); const lastIdx = vals.length - 1 - [...vals].reverse().findIndex(v=>v!=null);
+    if(path && firstIdx>=0){
+      const baseY = padT + plotH; const areaPath = `${path} L${xFor(lastIdx).toFixed(1)},${baseY} L${xFor(firstIdx).toFixed(1)},${baseY} Z`;
+      svgParts += `<path d="${areaPath}" fill="url(#cgGrad-${key})" opacity="0.16" stroke="none"/><linearGradient id="cgGrad-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${def.colorHex}" stop-opacity="0.9"/><stop offset="100%" stop-color="${def.colorHex}" stop-opacity="0"/></linearGradient>`;
+    }
+    if(path) svgParts += `<path d="${path}" fill="none" stroke="${def.colorHex}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#cgLineGlow)"/>`;
+    vals.forEach((v,i)=>{ const y = yFor(v, key); if(y==null) return; const x = xFor(i); svgParts += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${def.colorHex}" stroke="var(--panel)" stroke-width="1.2" style="cursor:pointer" onclick="selectCombinedDay('${days[i]}')"/>`; });
+    let maxV = null, maxI = -1; vals.forEach((v,i)=>{ if(v!=null && (maxV===null || v>maxV)) { maxV=v; maxI=i; } });
+    if(maxI>=0) peaks.push({key, def, i:maxI, v:maxV, x:xFor(maxI), y:yFor(maxV,key)});
+  });
+
+  peaks.sort((a,b)=>a.y-b.y);
+  peaks.slice(0,2).forEach(p=>{
+    const txt = p.key==='task' ? `${Math.round(p.v)}` : formatHM_EN(p.v);
+    const bw = Math.max(26, txt.length*5.6 + 10); const by = Math.max(p.y - 19, 9);
+    svgParts += `<g style="cursor:pointer" onclick="selectCombinedDay('${days[p.i]}')"><rect x="${(p.x-bw/2).toFixed(1)}" y="${(by-9).toFixed(1)}" width="${bw.toFixed(1)}" height="15" rx="7.5" fill="#12102a" stroke="${p.def.colorHex}" stroke-width="1"/><text x="${p.x.toFixed(1)}" y="${(by+1.5).toFixed(1)}" font-size="7" fill="#fff" text-anchor="middle" font-weight="700">${txt}</text><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${p.def.colorHex}" stroke="#fff" stroke-width="1.4"/></g>`;
+  });
+  const labelEvery = combinedRange==='month' ? 5 : 1;
+  days.forEach((d,i)=>{
+    if(i % labelEvery !== 0 && i !== days.length-1) return; const x = xFor(i);
+    const lbl = new Date(d+'T00:00:00').toLocaleDateString('bn-BD', combinedRange==='month' ? {day:'numeric'} : {weekday:'short'});
+    svgParts += `<text x="${x.toFixed(1)}" y="${H-4}" font-size="7" fill="#a89bd6" text-anchor="middle">${lbl}</text>`;
+  });
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:160px; display:block; touch-action:pan-y;">${svgParts}</svg>`;
+  if(!combinedSelectedDate || !days.includes(combinedSelectedDate)) combinedSelectedDate = days[days.length-1];
+  renderCombinedReadout();
+}
+
+function renderCombinedReadout(){
+  const readout = document.getElementById('combinedReadout'); if(!readout) return;
+  const d = combinedSelectedDate; if(!d){ readout.innerHTML=''; return; }
+  const label = formatDateLabel(d); const sleepTotal = getSleepTotal(d); const studyHrs = (state.studyHours||{})[d]; const tCount = state.tasks.filter(t=>t.date===d).length;
+  const rows = [];
+  if(combinedActive.sleep) rows.push(`<div class="day-popup-row"><span class="label"><span class="dot" style="background:${COMBINED_SERIES_DEFS.sleep.colorHex}"></span>ঘুম</span><span class="val">${sleepTotal!=null?formatHM(sleepTotal):'—'}</span></div>`);
+  if(combinedActive.study) rows.push(`<div class="day-popup-row"><span class="label"><span class="dot" style="background:${COMBINED_SERIES_DEFS.study.colorHex}"></span>স্টাডি</span><span class="val">${studyHrs!=null?formatHM(studyHrs):'—'}</span></div>`);
+  if(combinedActive.task) rows.push(`<div class="day-popup-row"><span class="label"><span class="dot" style="background:${COMBINED_SERIES_DEFS.task.colorHex}"></span>টপিক</span><span class="val">${tCount>0?tCount:'—'}</span></div>`);
+  readout.innerHTML = `<div style="font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; color:var(--muted); margin-bottom:6px;">${label.main==='আজ'?label.sub:label.main+' · '+label.sub}</div>` + rows.join('');
+}
+
+/* ===================== Feature 6: Subject Mastery Leaderboard & Focus Analytics ===================== */
+let leaderboardRange = 'month'; // 'week' | 'month' | 'all'
+const CORE_STUDY_SUBJECTS = [
+  'Physics 1st','Physics 2nd','Chemistry 1st','Chemistry 2nd',
+  'Higher Math 1st','Higher Math 2nd','Botany','Zoology',
+  'ICT','Bangla 1st','Bangla 2nd','English 1st','English 2nd'
+];
+
+function setLeaderboardRange(range){
+  leaderboardRange = range;
+  const toggleEl = document.getElementById('leaderboardRangeToggle');
+  if(toggleEl){
+    const btns = toggleEl.querySelectorAll('.rt-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    const idx = range === 'week' ? 0 : (range === 'month' ? 1 : 2);
+    if(btns[idx]) btns[idx].classList.add('active');
+  }
+  renderSubjectLeaderboard();
+}
+window.setLeaderboardRange = setLeaderboardRange;
+
+function quickLogSubject(subj){
+  const sel = document.getElementById('subjectSelect');
+  if(sel) sel.value = subj;
+  switchTab('log');
+  setTimeout(()=>{
+    const inp = document.getElementById('taskInput');
+    if(inp){
+      inp.focus();
+      inp.placeholder = `${subj}-এর কোন টপিকটা পড়েছো লিখো...`;
+    }
+  }, 120);
+}
+window.quickLogSubject = quickLogSubject;
+
+function computeSubjectAnalytics(period){
+  const today = todayStr();
+  const curMonthPrefix = today.slice(0, 7); // YYYY-MM
+  const allSubjects = Object.keys(SUBJECT_COLORS);
+
+  // Filter tasks within selected period
+  const periodTasks = (state.tasks || []).filter(t => {
+    if(!t || !t.date) return false;
+    if(period === 'all') return true;
+    if(period === 'week'){
+      const d = daysBetween(t.date, today);
+      return d >= 0 && d < 7;
+    }
+    if(period === 'month'){
+      return t.date.slice(0, 7) === curMonthPrefix;
+    }
+    return true;
+  });
+
+  // Track last studied date across all history for each subject
+  const lastDateMap = {};
+  (state.tasks || []).forEach(t => {
+    if(!t || !t.subject || !t.date) return;
+    if(!lastDateMap[t.subject] || t.date > lastDateMap[t.subject]){
+      lastDateMap[t.subject] = t.date;
+    }
+  });
+
+  const statsMap = {};
+  allSubjects.forEach(s => {
+    statsMap[s] = { subject: s, count: 0, tags: {}, lastDate: lastDateMap[s] || null };
+  });
+
+  periodTasks.forEach(t => {
+    const s = t.subject;
+    if(!statsMap[s]){
+      statsMap[s] = { subject: s, count: 0, tags: {}, lastDate: lastDateMap[s] || null };
+    }
+    statsMap[s].count++;
+    const tg = t.tag || 'General';
+    statsMap[s].tags[tg] = (statsMap[s].tags[tg] || 0) + 1;
+  });
+
+  const totalTopics = periodTasks.length;
+  const ranked = Object.values(statsMap)
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count || (b.lastDate || '').localeCompare(a.lastDate || ''));
+
+  // Determine neglected subjects (prioritize CORE_STUDY_SUBJECTS with 0 count in period or oldest lastDate)
+  const neglected = CORE_STUDY_SUBJECTS
+    .map(s => {
+      const st = statsMap[s] || { subject: s, count: 0, lastDate: null };
+      const daysAgo = st.lastDate ? Math.max(0, daysBetween(st.lastDate, today)) : null;
+      return { subject: s, count: st.count, lastDate: st.lastDate, daysAgo };
+    })
+    .filter(item => item.count === 0 || (item.daysAgo != null && item.daysAgo >= 5))
+    .sort((a, b) => {
+      if(a.count !== b.count) return a.count - b.count;
+      const da = a.daysAgo == null ? 9999 : a.daysAgo;
+      const db = b.daysAgo == null ? 9999 : b.daysAgo;
+      return db - da;
+    });
+
+  return { totalTopics, ranked, neglected };
+}
+
+function renderSubjectLeaderboard(){
+  const bannerEl = document.getElementById('leaderboardTopBanner');
+  const listEl = document.getElementById('leaderboardList');
+  const neglectedEl = document.getElementById('leaderboardNeglectedWrap');
+  const homeBox = document.getElementById('homeMasterySummary');
+
+  const periodTitleMap = { week: 'এই সপ্তাহে (৭ দিন)', month: 'এই মাসে', all: 'সব সময় মিলিয়ে' };
+  const { totalTopics, ranked, neglected } = computeSubjectAnalytics(leaderboardRange);
+
+  if(bannerEl && listEl){
+    if(ranked.length === 0){
+      bannerEl.innerHTML = `<div class="summary-empty">${periodTitleMap[leaderboardRange]} এখনো কোনো বিষয়ের টপিক লগ করা হয়নি।</div>`;
+      listEl.innerHTML = '';
+    } else {
+      const top = ranked[0];
+      const topColor = SUBJECT_COLORS[top.subject] || '#ffcd4e';
+      const topShare = Math.round((top.count / Math.max(1, totalTopics)) * 100);
+      bannerEl.innerHTML = `
+        <div class="lb-summary-banner">
+          <div class="lb-banner-left">
+            <div class="lb-banner-tag">👑 টপ ফোকাসড সাবজেক্ট (${periodTitleMap[leaderboardRange]})</div>
+            <div class="lb-banner-main" style="color:${topColor}">${escapeHtml(top.subject)} — ${top.count}টি টপিক</div>
+            <div class="lb-banner-sub">মোট ${totalTopics}টি টপিকের মধ্যে ${topShare}% পড়া হয়েছে এই বিষয়ে (${ranked.length}টি বিষয় সক্রিয়)</div>
+          </div>
+          <div class="lb-trophy-icon">🏆</div>
+        </div>
+      `;
+
+      const maxCount = ranked[0].count;
+      listEl.innerHTML = ranked.map((item, idx) => {
+        const rankNum = idx + 1;
+        const medal = rankNum === 1 ? '🥇 ১ম' : (rankNum === 2 ? '🥈 ২য়' : (rankNum === 3 ? '🥉 ৩য়' : `#${rankNum}`));
+        const topClass = rankNum <= 3 ? `top-${rankNum}` : '';
+        const c = SUBJECT_COLORS[item.subject] || '#b18aff';
+        const barPct = Math.max(8, Math.round((item.count / Math.max(1, maxCount)) * 100));
+        const sharePct = Math.round((item.count / Math.max(1, totalTopics)) * 100);
+
+        const tagChips = Object.entries(item.tags).map(([tg, cnt]) => {
+          if(tg === 'General') return `<span class="lb-tag-chip">সাধারণ: ${cnt}</span>`;
+          const meta = getTagMeta(tg);
+          return `<span class="lb-tag-chip" style="color:${meta ? meta.color : 'var(--muted)'}; border-color:${meta ? meta.color+'44' : 'var(--line)'}">${meta ? meta.label : tg}: ${cnt}</span>`;
+        }).join('');
+
+        const daysAgo = item.lastDate ? Math.max(0, daysBetween(item.lastDate, todayStr())) : null;
+        const lastSeenTxt = daysAgo === 0 ? 'আজ পড়া হয়েছে' : (daysAgo === 1 ? 'গতকাল পড়া হয়েছে' : `${daysAgo} দিন আগে`);
+
+        return `
+          <div class="lb-row ${topClass}">
+            <div class="lb-row-head">
+              <div class="lb-rank-left">
+                <span class="lb-rank-badge">${medal}</span>
+                <span class="lb-subj-name" style="color:${c}">${escapeHtml(item.subject)}</span>
+              </div>
+              <div class="lb-count-right">${item.count} টপিক <span>(${sharePct}%)</span></div>
+            </div>
+            <div class="lb-bar-bg">
+              <div class="lb-bar-fill" style="width:${barPct}%; background:${c}"></div>
+            </div>
+            <div class="lb-meta-row">
+              <div class="lb-tags-mini">${tagChips}</div>
+              <div class="lb-last-seen">🕒 ${lastSeenTxt}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  if(neglectedEl){
+    if(neglected.length === 0){
+      neglectedEl.innerHTML = `
+        <div class="neglected-box" style="border-color:rgba(111,227,160,0.4); background:rgba(111,227,160,0.08);">
+          <div class="neglected-title" style="color:var(--green);">✅ দারুণ ব্যালেন্স!</div>
+          <div class="neglected-sub" style="margin-bottom:0;">তুমি সব প্রধান বিষয়েই নিয়মিত পড়াশোনা করছো।</div>
+        </div>
+      `;
+    } else {
+      const topNeglected = neglected.slice(0, 6);
+      neglectedEl.innerHTML = `
+        <div class="neglected-box">
+          <div class="neglected-title">
+            <span>⚠️ কম পড়া হয়েছে / ফোকাস প্রয়োজন</span>
+            <span style="font-size:10.5px; color:var(--muted); font-weight:500;">ট্যাপ করে পড়া যোগ করো</span>
+          </div>
+          <div class="neglected-sub">নিচের বিষয়গুলোতে ${periodTitleMap[leaderboardRange]} কম পড়া হয়েছে অথবা অনেক দিন হাত দেওয়া হয়নি:</div>
+          <div class="neglected-chips">
+            ${topNeglected.map(n => {
+              const c = SUBJECT_COLORS[n.subject] || '#ff8a5c';
+              const statusTxt = n.daysAgo == null ? 'এখনো পড়া হয়নি' : (n.daysAgo === 0 ? 'আজ পড়া হয়েছে' : `${n.daysAgo} দিন ধরে গ্যাপ`);
+              return `<button type="button" class="neglected-chip" onclick="quickLogSubject('${n.subject.replace(/'/g,"\\'")}')">
+                <span style="color:${c}">●</span>
+                <span>${escapeHtml(n.subject)}</span>
+                <span class="n-days">(${statusTxt})</span>
+                <span class="n-plus">+ লগ</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Render compact summary widget on Home tab (always based on Current Month for steady context)
+  if(homeBox){
+    const monthStats = computeSubjectAnalytics('month');
+    const topSub = monthStats.ranked[0];
+    const focusSub = monthStats.neglected.slice(0, 3);
+
+    let homeHtml = '';
+    if(topSub){
+      const tc = SUBJECT_COLORS[topSub.subject] || '#ffcd4e';
+      homeHtml += `
+        <div class="summary-day-row" style="margin-bottom:10px;">
+          <span>🥇 এই মাসের টপ বিষয়: <strong style="color:${tc}">${escapeHtml(topSub.subject)}</strong></span>
+          <span class="val" style="color:var(--gold)">${topSub.count} টপিক</span>
+        </div>
+      `;
+    } else {
+      homeHtml += `<div class="summary-empty" style="padding:4px 0 10px;">এই মাসে এখনো কোনো টপিক লগ করা হয়নি</div>`;
+    }
+
+    if(focusSub.length > 0){
+      homeHtml += `
+        <div style="font-family:'Noto Sans Bengali',sans-serif; font-size:11.5px; color:var(--coral); font-weight:700; margin-bottom:6px;">
+          ⚠️ একটু নজর দাও (কম পড়া হচ্ছে):
+        </div>
+        <div class="neglected-chips">
+          ${focusSub.map(n => {
+            const c = SUBJECT_COLORS[n.subject] || '#ff8a5c';
+            const gapTxt = n.daysAgo == null ? 'পড়া হয়নি' : `${n.daysAgo} দিন গ্যাপ`;
+            return `<button type="button" class="neglected-chip" onclick="quickLogSubject('${n.subject.replace(/'/g,"\\'")}')">
+              <span style="color:${c}">●</span>
+              <span>${escapeHtml(n.subject)}</span>
+              <span class="n-days">(${gapTxt})</span>
+              <span class="n-plus">+</span>
+            </button>`;
+          }).join('')}
+        </div>
+      `;
+    }
+    homeBox.innerHTML = homeHtml;
+  }
+}
+
+function showDayPopup(dateStr){
+  const label = formatDateLabel(dateStr);
+  document.getElementById('dayPopupTitle').textContent = label.main==='আজ' ? `আজ, ${label.sub}` : `${label.main}, ${label.sub}`;
+  const sleepTotal = getSleepTotal(dateStr); const sleepCycles = getSleepCycles(dateStr).length; const studyHrs = (state.studyHours||{})[dateStr];
+  const tCount = state.tasks.filter(t=>t.date===dateStr).length;
+  document.getElementById('dayPopupBody').innerHTML = `<div class="day-popup-row"><span class="label">😴 ঘুম</span><span class="val">${sleepTotal!=null ? formatHM(sleepTotal) + (sleepCycles>1?` (${sleepCycles} সাইকেল)`:'') : 'ডেটা নেই'}</span></div><div class="day-popup-row"><span class="label">📚 স্টাডি</span><span class="val">${studyHrs!=null ? formatHM(studyHrs) : 'ডেটা নেই'}</span></div><div class="day-popup-row"><span class="label">✅ টপিক</span><span class="val">${tCount > 0 ? tCount + ' টপিক' : 'কোনো পড়া নেই'}</span></div>`;
+  document.getElementById('dayPopupGoto').onclick = ()=>{ closeDayPopup(); jumpToDate(dateStr); };
+  document.getElementById('dayPopupOverlay').style.display = 'flex';
+}
+function closeDayPopup(e){ if(e && e.target && e.target.id !== 'dayPopupOverlay') return; document.getElementById('dayPopupOverlay').style.display = 'none'; }
+window.showDayPopup = showDayPopup; window.closeDayPopup = closeDayPopup;
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const subject = document.getElementById('subjectSelect').value; const input = document.getElementById('taskInput');
+  const name = input.value.trim(); if(!name) return;
+  addTask(subject, name, selectedDate, selectedAddTag, addNeedsRevision);
+  input.value = '';
+  selectedAddTag = null;
+  addNeedsRevision = false;
+  renderTagPills();
+  renderAddRevisionToggle();
+});
+document.getElementById('taskInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') document.getElementById('addBtn').click(); });
+document.getElementById('filterSelect').addEventListener('change', (e)=>{ currentFilter = e.target.value; render(); });
+const tagFilterEl = document.getElementById('tagFilterSelect');
+if(tagFilterEl) tagFilterEl.addEventListener('change', (e)=>{ currentTagFilter = e.target.value; render(); });
+document.getElementById('prevDay').addEventListener('click', ()=>{ selectedDate = shiftDate(selectedDate,-1); render(); });
+document.getElementById('nextDay').addEventListener('click', ()=>{ selectedDate = shiftDate(selectedDate,1); render(); });
+document.getElementById('todayBtn').addEventListener('click', ()=>{ selectedDate = todayStr(); render(); });
+document.getElementById('datePicker').addEventListener('change', (e)=>{ if(e.target.value){ selectedDate = e.target.value; render(); } });
+
+window.jumpToDate = jumpToDate;
+
+function downloadFullBackup(){
+  try{
+    const payload = { app: 'study-tracker', backupVersion: 1, exportedAt: new Date().toISOString(), state: state };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'}); const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); const dateTag = new Date().toISOString().slice(0,10);
+    link.href = url; link.download = `study-tracker-backup-${dateTag}.json`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link); setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }catch(e){ const msgEl = document.getElementById('backupImportMsg'); if(msgEl) msgEl.innerText = 'ব্যাকআপ তৈরি করতে সমস্যা হয়েছে।'; }
+}
+
+function handleBackupImport(event){
+  const file = event.target.files && event.target.files[0]; const msgEl = document.getElementById('backupImportMsg');
+  if(msgEl) msgEl.innerText = ''; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try{
+      const parsed = JSON.parse(e.target.result); const incoming = (parsed && parsed.state && typeof parsed.state === 'object') ? parsed.state : parsed;
+      if(!incoming || typeof incoming !== 'object' || (!incoming.tasks && !incoming.sleep && !incoming.studyHours)){
+        if(msgEl) msgEl.innerText = 'এইটা ভ্যালিড ব্যাকআপ ফাইল মনে হচ্ছে না।'; event.target.value = ''; return;
+      }
+      if(!window.confirm('এই ব্যাকআপ ইমপোর্ট করলে বর্তমান সব ডেটা রিপ্লেস হয়ে যাবে। আগে বর্তমান ডেটার একটা ব্যাকআপ নিয়ে রাখা ভালো। চালিয়ে যাবে?')){ event.target.value = ''; return; }
+      state = incoming; if(!state.tasks) state.tasks = [];
+      migrateSleepData(); applyTheme(state.theme, false); await saveState(); render();
+      if(msgEl){ msgEl.style.color = 'var(--mint, #2ecc71)'; msgEl.innerText = 'ব্যাকআপ সফলভাবে ইমপোর্ট হয়েছে ✅'; }
+    }catch(err){ if(msgEl) msgEl.innerText = 'ফাইলটি পড়তে সমস্যা হয়েছে — এটা ঠিক JSON ব্যাকআপ ফাইল কিনা চেক করো।'; }finally{ event.target.value = ''; }
+  };
+  reader.onerror = () => { if(msgEl) msgEl.innerText = 'ফাইল পড়া যায়নি।'; event.target.value = ''; };
+  reader.readAsText(file);
+}
+
+window.downloadFullBackup = downloadFullBackup; window.handleBackupImport = handleBackupImport; window.downloadTaskImage = downloadTaskImage; window.closeImagePreview = closeImagePreview; window.triggerImageDownload = triggerImageDownload; window.shiftCalendarMonth = shiftCalendarMonth; window.addSleepCycle = addSleepCycle; window.saveStudyEntry = saveStudyEntry; window.setGraphRange = setGraphRange; window.exportSelectedData = exportSelectedData; window.applyTheme = applyTheme;
+
+function filterByPeriod(dateStr, period){
+  if(period==='all') return true; const diff = daysBetween(dateStr, todayStr());
+  if(period==='week') return diff>=0 && diff<7; if(period==='month') return diff>=0 && diff<31; return true;
+}
+function toLatinSafe(str){
+  if(str == null) return ''; const cleaned = String(str).replace(/[^\x00-\x7F]/g, '').replace(/\s+/g,' ').trim();
+  return cleaned || '(Bangla text)';
+}
+
+const PDF_COLORS = { indigo:[91,42,134], teal:[45,212,191], gold:[251,191,36], coral:[251,113,133], green:[52,211,153] };
+
+function drawBarChartPNG(labels, values, opts){
+  opts = opts || {}; const W = 780, H = 300; const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
+  const padL=46, padR=16, padT=24, padB= (labels.length>10 ? 46 : 34); const chartW = W-padL-padR, chartH = H-padT-padB;
+  const max = Math.max(...values, opts.minMax || 1); const n = values.length; const gap = chartW/n; const barW = Math.min(gap*0.62, 34);
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  for(let g=0; g<=4; g++){ const gy = padT + chartH - (g/4)*chartH; ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W-padR, gy); ctx.stroke(); ctx.fillStyle = '#94a3b8'; ctx.font = '15px Arial'; ctx.textAlign = 'right'; ctx.fillText(Math.round((g/4)*max*10)/10, padL-8, gy+5); }
+  values.forEach((v,i)=>{
+    const x = padL + i*gap + (gap-barW)/2; const h = Math.max((v/max)*chartH, v>0?4:0); const y = padT+chartH-h;
+    if(v>0){ const grad = ctx.createLinearGradient(0,y,0,padT+chartH); grad.addColorStop(0, opts.colorTop || '#818cf8'); grad.addColorStop(1, opts.colorBottom || '#2dd4bf'); ctx.fillStyle = grad; roundRectPath(ctx, x, y, barW, h, 4); ctx.fill(); ctx.fillStyle = '#334155'; ctx.font = 'bold 14px Arial'; ctx.textAlign='center'; if(n<=14) ctx.fillText(String(v), x+barW/2, y-6); }
+    ctx.fillStyle = '#64748b'; ctx.font = '13px Arial'; ctx.textAlign='center';
+    if(n<=14 || i%3===0){ ctx.save(); if(n>14){ ctx.translate(x+barW/2, padT+chartH+18); ctx.rotate(-Math.PI/3); ctx.textAlign='right'; ctx.fillText(labels[i],0,0); } else { ctx.fillText(labels[i], x+barW/2, padT+chartH+18); } ctx.restore(); }
+  });
+  ctx.strokeStyle = '#cbd5e1'; ctx.beginPath(); ctx.moveTo(padL, padT+chartH); ctx.lineTo(W-padR, padT+chartH); ctx.stroke();
+  return canvas.toDataURL('image/png');
+}
+function makePDFDoc(title, subtitle, accent){
+  const { jsPDF } = window.jspdf; const doc = new jsPDF(); const c = accent || PDF_COLORS.indigo;
+  doc.setFillColor(c[0],c[1],c[2]); doc.rect(0, 0, 210, 32, 'F'); doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.text(title, 14, 18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.text(subtitle || ('Study Tracker — Generated ' + todayStr()), 14, 26);
+  doc.setTextColor(30,30,30); return doc;
+}
+function pdfSectionTitle(doc, y, text, accent){
+  const c = accent || PDF_COLORS.indigo; doc.setFillColor(c[0],c[1],c[2]); doc.rect(14, y-5, 4, 6, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(30,30,30); doc.text(text, 21, y); return y+8;
+}
+function pdfChartImage(doc, y, dataUrl, w, h){ if(y + h > 280){ doc.addPage(); y = 20; } doc.addImage(dataUrl, 'PNG', 14, y, w, h); return y + h + 8; }
+function pdfTable(doc, startY, headers, dataRows, colWidths, opts){
+  opts = opts || {}; const accent = opts.accent || PDF_COLORS.indigo; const widths = colWidths || headers.map(()=> 45); let y = startY;
+  const drawHeader = ()=>{ doc.setFillColor(accent[0],accent[1],accent[2]); doc.rect(14, y-5, widths.reduce((a,b)=>a+b,0), 8, 'F'); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255); let x = 17; headers.forEach((h,i)=>{ doc.text(String(h), x, y); x += widths[i]; }); y += 8; };
+  drawHeader(); doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  dataRows.forEach((row, ri)=>{
+    if(y > 278){ doc.addPage(); y = 20; drawHeader(); doc.setFont('helvetica','normal'); doc.setFontSize(9.5); }
+    if(ri%2===0){ doc.setFillColor(244,246,251); doc.rect(14, y-5, widths.reduce((a,b)=>a+b,0), 7, 'F'); }
+    let x = 17;
+    row.forEach((cell,i)=>{ doc.setTextColor(50,55,65); doc.setFont('helvetica','normal'); doc.text(String(cell==null?'':cell), x, y); x += widths[i]; });
+    y += 7;
+  }); doc.setTextColor(30,30,30); return y + 4;
+}
+
+async function exportSleepPDF(){
+  const doc = makePDFDoc('Sleep Data', 'Study Tracker — Generated ' + todayStr(), PDF_COLORS.indigo);
+  const n = graphRanges.sleep==='month' ? 30 : 7; const days = []; for(let i=n-1;i>=0;i--) days.push(shiftDate(todayStr(),-i));
+  const labels = days.map(d=> new Date(d+'T00:00:00').toLocaleDateString('en-US', n>14?{day:'numeric'}:{weekday:'short'})); const values = days.map(d=> getSleepTotal(d) || 0);
+  const chart = drawBarChartPNG(labels, values, { colorTop:'#818cf8', colorBottom:'#5ec8ff', minMax:8 });
+  let y = pdfSectionTitle(doc, 42, `Sleep Hours — Last ${n} days`, PDF_COLORS.indigo); y = pdfChartImage(doc, y, chart, 182, 68);
+  const rows = []; Object.keys(state.sleep||{}).sort().reverse().forEach(d=>{ getSleepCycles(d).forEach(c=> rows.push([d, c.start||'-', c.end||'-', c.hours!=null ? formatHM_EN(c.hours) : '-'])); });
+  y = pdfSectionTitle(doc, y+4, 'All Sleep Cycles', PDF_COLORS.indigo); pdfTable(doc, y+4, ['Date','Bedtime','Wake time','Hours'], rows, [35,45,45,50], {accent:PDF_COLORS.indigo});
+  doc.save('sleep-data.pdf');
+}
+async function exportStudyPDF(){
+  const doc = makePDFDoc('Study Hours Data', 'Study Tracker — Generated ' + todayStr(), PDF_COLORS.teal);
+  const n = graphRanges.study==='month' ? 30 : 7; const days = []; for(let i=n-1;i>=0;i--) days.push(shiftDate(todayStr(),-i));
+  const labels = days.map(d=> new Date(d+'T00:00:00').toLocaleDateString('en-US', n>14?{day:'numeric'}:{weekday:'short'})); const values = days.map(d=> (state.studyHours||{})[d] || 0);
+  const chart = drawBarChartPNG(labels, values, { colorTop:'#fbbf24', colorBottom:'#fb923c', minMax:8 });
+  let y = pdfSectionTitle(doc, 42, `Study Hours — Last ${n} days`, [217,119,6]); y = pdfChartImage(doc, y, chart, 182, 68);
+  const rows = Object.keys(state.studyHours||{}).sort().reverse().map(d=> [d, formatHM_EN(state.studyHours[d])]);
+  y = pdfSectionTitle(doc, y+4, 'All Study Records', [217,119,6]); pdfTable(doc, y+4, ['Date','Hours Studied'], rows, [60,60], {accent:[217,119,6]});
+  doc.save('study-hours.pdf');
+}
+window.exportSleepPDF = exportSleepPDF; window.exportStudyPDF = exportStudyPDF;
+
+async function exportSelectedData(){
+  const type = document.getElementById('exportDataType').value; const period = document.getElementById('exportPeriod').value;
+  const tasks = state.tasks.filter(t=>filterByPeriod(t.date, period));
+  const sleepDates = Object.keys(state.sleep||{}).filter(d=>filterByPeriod(d, period)).sort();
+  const studyDates = Object.keys(state.studyHours||{}).filter(d=>filterByPeriod(d, period)).sort();
+  const periodLabel = { week:'This Week', month:'This Month', all:'All Time' }[period];
+
+  if(type==='tasks'){
+    const doc = makePDFDoc('Task List', `Study Tracker — ${periodLabel} — Generated ${todayStr()}`, PDF_COLORS.coral);
+    let y = pdfSectionTitle(doc, 42, `Completion Overview (${tasks.length} topics total)`, PDF_COLORS.coral);
+    y = pdfSectionTitle(doc, y+4, 'Task List', PDF_COLORS.coral);
+    pdfTable(doc, y+4, ['Date','Subject','Tag','Task'], tasks.sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date, toLatinSafe(t.subject), t.tag ? toLatinSafe(t.tag) : '-', toLatinSafe(t.name).slice(0,34)]), [28,38,32,84], {accent:PDF_COLORS.coral});
+    doc.save(`tasks-${period}.pdf`); return;
+  }
+  if(type==='sleep'){ await exportSleepPDF(); return; } if(type==='study'){ await exportStudyPDF(); return; }
+
+  const doc = makePDFDoc('Complete Data Export', `Study Tracker — ${periodLabel} — Generated ${todayStr()}`, PDF_COLORS.indigo);
+  let y = pdfSectionTitle(doc, 42, `Topics (${tasks.length} studied)`, PDF_COLORS.coral);
+  y = pdfTable(doc, y+4, ['Date','Subject','Tag','Topic'], tasks.sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[t.date, toLatinSafe(t.subject), t.tag ? toLatinSafe(t.tag) : '-', toLatinSafe(t.name).slice(0,34)]), [28,38,32,84], {accent:PDF_COLORS.coral});
+  if(y>230){ doc.addPage(); y=20; }
+  const sleepValues = sleepDates.map(d=> getSleepTotal(d) || 0);
+  if(sleepDates.length){
+    const sleepChart = drawBarChartPNG(sleepDates.map(d=>d.slice(5)), sleepValues, { colorTop:'#818cf8', colorBottom:'#5ec8ff', minMax:8 });
+    y = pdfSectionTitle(doc, y+6, 'Sleep Hours', PDF_COLORS.indigo); y = pdfChartImage(doc, y, sleepChart, 182, 60);
+  }
+  const sleepRows = []; sleepDates.forEach(d=>{ getSleepCycles(d).forEach(c=> sleepRows.push([d, c.start||'-', c.end||'-', c.hours!=null?formatHM_EN(c.hours):'-'])); });
+  y = pdfTable(doc, y+2, ['Date','Bedtime','Wake time','Hours'], sleepRows, [35,45,45,50], {accent:PDF_COLORS.indigo});
+  if(y>220){ doc.addPage(); y=20; }
+  const studyValues = studyDates.map(d=> state.studyHours[d] || 0);
+  if(studyDates.length){
+    const studyChart = drawBarChartPNG(studyDates.map(d=>d.slice(5)), studyValues, { colorTop:'#fbbf24', colorBottom:'#fb923c', minMax:8 });
+    y = pdfSectionTitle(doc, y+6, 'Study Hours', [217,119,6]); y = pdfChartImage(doc, y, studyChart, 182, 60);
+  }
+  pdfTable(doc, y+2, ['Date','Hours Studied'], studyDates.map(d=>[d, formatHM_EN(state.studyHours[d])]), [60,60], {accent:[217,119,6]});
+  doc.save(`all-data-${period}.pdf`);
+}
+
+const THEMES = {
+  default: { name:'ভায়োলেট নাইট', colors:['#1a1238','#2a1f56','#ff6fa8','#3fe0d0','#ffcd4e'], vars:{ '--bg':'#1a1238', '--bg-2':'#241a4d', '--panel':'#2a1f56', '--panel-2':'#34276b', '--pink':'#ff6fa8', '--teal':'#3fe0d0', '--gold':'#ffcd4e', '--violet':'#b18aff', '--coral':'#ff8a5c', '--sky':'#5ac8fa', '--green':'#6fe3a0', '--text':'#f6f2ff', '--muted':'#a89bd6' } },
+  ocean: { name:'ওশান ডেপথস', colors:['#0a1420','#142943','#5ec8ff','#2dd4bf','#fbbf24'], vars:{ '--bg':'#0a1420', '--bg-2':'#0f1e30', '--panel':'#142943', '--panel-2':'#1c3555', '--pink':'#5ec8ff', '--teal':'#2dd4bf', '--gold':'#fbbf24', '--violet':'#818cf8', '--coral':'#fb7185', '--sky':'#60a5fa', '--green':'#34d399', '--text':'#eaf4ff', '--muted':'#8fa6c9' } },
+  sunset: { name:'সানসেট এম্বার', colors:['#1c0f0a','#331a0e','#ff8787','#ffa94d','#ffd43b'], vars:{ '--bg':'#1c0f0a', '--bg-2':'#271409', '--panel':'#331a0e', '--panel-2':'#402312', '--pink':'#ff8787', '--teal':'#ffa94d', '--gold':'#ffd43b', '--violet':'#ff6b6b', '--coral':'#f76707', '--sky':'#ffc078', '--green':'#c0eb75', '--text':'#fff3e6', '--muted':'#d1a98a' } },
+  forest: { name:'ফরেস্ট ডাস্ক', colors:['#0b1710','#163021','#ffa8c5','#40c9a2','#e0c88f'], vars:{ '--bg':'#0b1710', '--bg-2':'#102319', '--panel':'#163021', '--panel-2':'#1d3d2a', '--pink':'#ffa8c5', '--teal':'#40c9a2', '--gold':'#e0c88f', '--violet':'#8fd19e', '--coral':'#ff9776', '--sky':'#7ee0b8', '--green':'#52c785', '--text':'#e9fff1', '--muted':'#8fb89e' } },
+  rose: { name:'রোজ কোয়ার্টজ', colors:['#170c1c','#2c1636','#ff85c0','#c084fc','#fcd34d'], vars:{ '--bg':'#170c1c', '--bg-2':'#211029', '--panel':'#2c1636', '--panel-2':'#391c46', '--pink':'#ff85c0', '--teal':'#c084fc', '--gold':'#fcd34d', '--violet':'#a78bfa', '--coral':'#f472b6', '--sky':'#e0aaff', '--green':'#86efac', '--text':'#fdf0ff', '--muted':'#c19bd9' } }
+};
+function applyTheme(name, save=true){
+  const theme = THEMES[name] || THEMES.default; Object.entries(theme.vars).forEach(([k,v])=> document.documentElement.style.setProperty(k, v)); state.theme = name;
+  if(save) { saveState(); renderThemeGrid(); }
+}
+function renderThemeGrid(){
+  const grid = document.getElementById('themeGrid'); if(!grid) return;
+  grid.innerHTML = Object.entries(THEMES).map(([key,t])=>{
+    const active = state.theme === key;
+    return `<div class="theme-option ${active?'active':''}" onclick="applyTheme('${key}')"><div class="theme-swatch">${t.colors.map(c=>`<span style="background:${c}"></span>`).join('')}</div><div class="theme-name">${t.name}${active?' ✓':''}</div></div>`;
+  }).join('');
+}
+
+function toggleProfileDropdown(e){
+  e.stopPropagation(); if(!window.currentUserLoggedIn){ if(window.openLoginModal) window.openLoginModal(); return; }
+  document.getElementById('profileDropdown').classList.toggle('show');
+}
+function closeDropdownOutside(e){
+  const container = document.querySelector('.profile-menu-container'); const dropdown = document.getElementById('profileDropdown');
+  if(dropdown && dropdown.classList.contains('show') && container && !container.contains(e.target)) dropdown.classList.remove('show');
+}
+window.toggleProfileDropdown = toggleProfileDropdown; window.closeDropdownOutside = closeDropdownOutside;
+loadState();
+</script>
+
+<div class="modal-overlay" id="loginOverlay" style="display:none; z-index: 100; background:rgba(10,7,22,0.85);">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:-6px;"><div class="modal-close" onclick="closeLoginModal()">✕</div></div>
+    <div style="text-align:center; margin-bottom:18px;"><h1 style="font-size:28px;">Study Tracker</h1><div class="author-sub">by Sajim</div></div>
+
+    <div class="auth-screen active" id="loginScreen">
+      <div class="modal-head"><div class="modal-title">🔐 লগইন করুন</div></div>
+      <div class="backup-hint">অ্যাক্সেস পেতে তোমার ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করো।</div>
+      <input type="text" id="loginEmail" placeholder="Email" style="width:100%; margin-bottom:10px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--text); outline:none;">
+      <input type="password" id="loginPassword" placeholder="Password" style="width:100%; margin-bottom:10px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--text); outline:none;">
+      <div class="backup-hint warn" id="loginError" style="margin-bottom:10px; color:var(--coral);"></div>
+      <div class="backup-actions"><button class="add-btn" style="margin-top:0;" onclick="loginUser()">লগইন করো</button></div>
+      <div class="backup-hint" style="text-align:center; margin-top:14px; margin-bottom:0;">নতুন এখানে? <span style="color:var(--teal); cursor:pointer; font-weight:700;" onclick="showAuthScreen('register')">অ্যাকাউন্ট তৈরি করো</span></div>
+      <div class="backup-hint" style="text-align:center; margin-top:10px; margin-bottom:0;"><span style="color:var(--coral); cursor:pointer; text-decoration:underline;" onclick="closeLoginModal()">এখন থাক, পরে লগইন করব</span></div>
+    </div>
+
+    <div class="auth-screen" id="registerScreen">
+      <div class="modal-head"><div class="modal-title">✨ নতুন অ্যাকাউন্ট তৈরি করো</div></div>
+      <div class="backup-hint">ইমেইল ও পাসওয়ার্ড দিয়ে তোমার নতুন অ্যাকাউন্ট তৈরি করো।</div>
+      <input type="text" id="registerEmail" placeholder="Email" style="width:100%; margin-bottom:10px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--text); outline:none;">
+      <input type="password" id="registerPassword" placeholder="Password (কমপক্ষে ৬ ক্যারেক্টার)" style="width:100%; margin-bottom:10px; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--text); outline:none;">
+      <div class="backup-hint warn" id="registerError" style="margin-bottom:10px; color:var(--coral);"></div>
+      <div class="backup-actions"><button class="add-btn" style="margin-top:0;" onclick="registerUser()">অ্যাকাউন্ট তৈরি করো</button></div>
+      <div class="backup-hint" style="text-align:center; margin-top:14px; margin-bottom:0;">আগে থেকেই অ্যাকাউন্ট আছে? <span style="color:var(--teal); cursor:pointer; font-weight:700;" onclick="showAuthScreen('login')">লগইন করো</span></div>
+      <div class="backup-hint" style="text-align:center; margin-top:10px; margin-bottom:0;"><span style="color:var(--coral); cursor:pointer; text-decoration:underline;" onclick="closeLoginModal()">এখন থাক, পরে লগইন করব</span></div>
+    </div>
+
+    <div class="auth-screen" id="successScreen">
+      <div style="text-align:center; padding:14px 6px 6px;">
+        <div style="font-size:44px; line-height:1; margin-bottom:12px;">✅</div>
+        <div class="modal-title" style="justify-content:center; margin-bottom:8px;">Successfully account created!</div>
+        <div class="backup-hint" style="margin-bottom:18px;">তোমার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। এখন লগইন করে শুরু করো।</div>
+        <button class="add-btn" style="margin-top:0;" onclick="showAuthScreen('login')">লগইন করতে যাও</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  const firebaseConfig = { apiKey: "AIzaSyB4OUT32goS67iocDx4sf6sEGCXx2UNrGQ", authDomain: "studytracker-94e2b.firebaseapp.com", projectId: "studytracker-94e2b", storageBucket: "studytracker-94e2b.firebasestorage.app", messagingSenderId: "48663581289", appId: "1:48663581289:web:3986bdc08196abe32b88f8", measurementId: "G-JRBEZ8TQPD" };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app); const db = getFirestore(app);
+  let currentUserUid = null; let unsubscribeSnapshot = null; window.isGuestMode = true; window.currentUserLoggedIn = false;
+
+  window.showAuthScreen = (name) => { document.querySelectorAll('.auth-screen').forEach(el => el.classList.remove('active')); document.getElementById(name + 'Screen').classList.add('active'); document.getElementById('loginError').innerText = ''; document.getElementById('registerError').innerText = ''; };
+  window.openLoginModal = () => { window.showAuthScreen('login'); document.getElementById('loginOverlay').style.display = 'flex'; };
+  window.closeLoginModal = () => { document.getElementById('loginOverlay').style.display = 'none'; };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUserUid = user.uid; window.isGuestMode = false; window.currentUserLoggedIn = true;
+      document.getElementById('loginOverlay').style.display = 'none';
+      if (document.getElementById('profileEmailLabel')) document.getElementById('profileEmailLabel').textContent = user.email || '—';
+      if (document.getElementById('userNameDisplay')) document.getElementById('userNameDisplay').textContent = user.displayName || 'স্টুডেন্ট';
+      await window.loadStateFromDB(); startRealtimeSync();
+    } else {
+      currentUserUid = null; window.currentUserLoggedIn = false; stopRealtimeSync();
+    }
+  });
+
+  function applyCloudState(raw){
+    if(!raw) return false;
+    try{ state = JSON.parse(raw); migrateSleepData(); try{ localStorage.setItem(STORAGE_KEY, raw); }catch(e){} window.__lastKnownCloudRaw = raw; return true; }catch(e){ return false; }
+  }
+  function startRealtimeSync(){
+    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; } if(!currentUserUid) return;
+    unsubscribeSnapshot = onSnapshot(doc(db, "users", currentUserUid), (docSnap) => { if(docSnap.metadata.hasPendingWrites || !docSnap.exists()) return; const raw = docSnap.data().data; if(!raw || raw === window.__lastKnownCloudRaw) return; if(applyCloudState(raw)) render(); }, (err)=>{});
+  }
+  function stopRealtimeSync(){ if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; } window.__lastKnownCloudRaw = null; }
+
+  async function pullLatestFromCloud(){
+    if(!currentUserUid || window.isGuestMode) return;
+    try{ const docSnap = await getDoc(doc(db, "users", currentUserUid)); if(docSnap.exists()){ const raw = docSnap.data().data; if(raw && raw !== window.__lastKnownCloudRaw){ if(applyCloudState(raw)) render(); } } }catch(e){}
+  }
+  window.pullLatestFromCloud = pullLatestFromCloud;
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') pullLatestFromCloud(); });
+  window.addEventListener('focus', () => pullLatestFromCloud()); window.addEventListener('pageshow', () => pullLatestFromCloud());
+
+  window.saveDataToFirebase = async (stateData) => { if (!currentUserUid || window.isGuestMode) return; try { await setDoc(doc(db, "users", currentUserUid), { data: JSON.stringify(stateData) }); } catch(e) {} };
+  window.loadDataFromFirebase = async () => { if (!currentUserUid || window.isGuestMode) return false; try { const docSnap = await getDoc(doc(db, "users", currentUserUid)); return docSnap.exists() ? docSnap.data().data : null; } catch(e) { return false; } };
+
+  window.registerUser = () => {
+    const email = document.getElementById('registerEmail').value.trim(); const password = document.getElementById('registerPassword').value;
+    const errEl = document.getElementById('registerError'); errEl.innerText = '';
+    if (!email || !password) { errEl.innerText = "ইমেইল ও পাসওয়ার্ড দিন"; return; }
+    createUserWithEmailAndPassword(auth, email, password).then(async (cred) => { try{ await setDoc(doc(db, "users", cred.user.uid), { data: JSON.stringify(state) }); }catch(e){} return signOut(auth); }).then(() => { window.showAuthScreen('success'); }).catch((error) => { errEl.innerText = error.message; });
+  };
+  window.loginUser = () => {
+    const email = document.getElementById('loginEmail').value.trim(); const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError'); errEl.innerText = '';
+    if (!email || !password) { errEl.innerText = "ইমেইল ও পাসওয়ার্ড দিন"; return; }
+    signInWithEmailAndPassword(auth, email, password).catch((error) => { errEl.innerText = "ভুল ইমেইল বা পাসওয়ার্ড!"; });
+  };
+  window.logoutUser = async () => {
+    const dropdown = document.getElementById('profileDropdown'); if (dropdown) dropdown.classList.remove('show');
+    try{ if(window.saveDataToFirebase && !window.isGuestMode) await window.saveDataToFirebase(state); }catch(e){}
+    stopRealtimeSync(); window.isGuestMode = true; window.currentUserLoggedIn = false; state = defaultState();
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} render(); signOut(auth).then(() => { document.getElementById('loginOverlay').style.display = 'none'; });
+  };
+  window.openPasswordResetModal = () => {
+    const dropdown = document.getElementById('profileDropdown'); if (dropdown) dropdown.classList.remove('show');
+    if (window.isGuestMode) { alert("গেস্ট মোডে পাসওয়ার্ড রিসেট করা সম্ভব নয়।"); return; }
+    document.getElementById('resetMsg').innerText = ''; if (auth.currentUser && auth.currentUser.email) document.getElementById('resetEmailInput').value = auth.currentUser.email;
+    document.getElementById('passwordResetOverlay').classList.add('open');
+  };
+  window.closePasswordResetModal = () => { document.getElementById('passwordResetOverlay').classList.remove('open'); document.getElementById('resetMsg').innerText = ''; };
+  window.sendPasswordReset = () => {
+    const email = document.getElementById('resetEmailInput').value.trim(); const msgEl = document.getElementById('resetMsg');
+    if (!email) { msgEl.style.color = 'var(--coral)'; msgEl.innerText = 'দয়া করে ইমেইল লিখো।'; return; }
+    sendPasswordResetEmail(auth, email).then(() => { msgEl.style.color = 'var(--green)'; msgEl.innerText = 'পাসওয়ার্ড রিসেট লিংক তোমার ইমেইলে পাঠানো হয়েছে!'; }).catch((error) => { msgEl.style.color = 'var(--coral)'; msgEl.innerText = error.message; });
+  };
+  window.updateProfileName = () => {
+    const dropdown = document.getElementById('profileDropdown'); if (dropdown) dropdown.classList.remove('show');
+    if (window.isGuestMode) { alert("গেস্ট মোডে নাম পরিবর্তন করা সম্ভব নয়।"); return; }
+    const user = auth.currentUser; if (!user) return; const name = prompt("তোমার নাম লিখো:", user.displayName || '');
+    if (name === null) return; const trimmed = name.trim(); if (!trimmed) return;
+    updateProfile(user, { displayName: trimmed }).then(() => { if (document.getElementById('userNameDisplay')) document.getElementById('userNameDisplay').textContent = trimmed; }).catch((error) => alert(error.message));
+  };
+</script>
+</body>
+</html>
